@@ -119,4 +119,16 @@ return [
 
     'password_timeout' => env('AUTH_PASSWORD_TIMEOUT', 10800),
 
+    /*
+    |--------------------------------------------------------------------------
+    | API Token Lifetime
+    |--------------------------------------------------------------------------
+    |
+    | Minutos de validade do token Bearer (Passport) emitido no login.
+    | Quando expira, a API responde 401 e o front manda de volta ao login.
+    |
+    */
+
+    'token_ttl_minutes' => (int) env('AUTH_TOKEN_TTL_MINUTES', 480),
+
 ];

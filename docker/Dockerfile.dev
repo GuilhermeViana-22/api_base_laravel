@@ -1,11 +1,7 @@
-# Imagem de PRODUÇÃO pro deploy no Dokploy — Traefik fala HTTP direto com
-# este container (sem nginx no meio). FrankenPHP fala HTTP nativamente e
-# substitui nginx + php-fpm ao mesmo tempo.
-#
-# Não mexe no `Dockerfile` original (nginx + php-fpm) — esse continua sendo
-# usado pelo docker-compose.yml de desenvolvimento local. Os dois Dockerfiles
-# convivem: um pra dev local, este aqui só pra produção via Dokploy.
-FROM dunglas/frankenphp:1-php8.4-alpine
+# Imagem de DESENVOLVIMENTO local — nginx (serviço separado) + php-fpm.
+# Usada pelo docker-compose.yml (dev). Para produção/Dokploy, ver
+# Dockerfile (raiz) + docker-compose.prod.yml.
+FROM php:8.4-fpm-alpine
 
 WORKDIR /var/www/html
 
@@ -32,12 +28,9 @@ RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local
 
 RUN composer --version && php --version
 
-COPY docker/Caddyfile /etc/caddy/Caddyfile
 COPY docker/entrypoint.sh /entrypoint.sh
 COPY docker/entrypoint-artisan.sh /entrypoint-artisan.sh
 RUN chmod +x /entrypoint.sh /entrypoint-artisan.sh
 
-EXPOSE 80
-
 ENTRYPOINT ["/entrypoint.sh"]
-CMD ["frankenphp", "run", "--config", "/etc/caddy/Caddyfile"]
+CMD ["php-fpm"]

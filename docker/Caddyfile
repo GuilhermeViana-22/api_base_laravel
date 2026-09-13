@@ -1,15 +1,14 @@
+# FrankenPHP (produção). O TLS fica com o proxy da frente (Traefik/Dokploy),
+# então aqui é só HTTP, na porta HTTP_PORT (padrão 8019).
 {
 	frankenphp
+	auto_https off
 }
 
-# Traefik já termina TLS e fala HTTP puro com este container — por isso
-# escuta só :80, sem nada de HTTPS aqui (evita o FrankenPHP tentar emitir
-# certificado próprio, que não faz sentido atrás de um proxy).
-:80 {
+:{$HTTP_PORT:8019} {
 	root * /var/www/html/public
 	encode gzip
 
-	# php_server já resolve o front-controller do Laravel (tenta arquivo
-	# estático, cai pra index.php) — substitui nginx + php-fpm inteiros.
+	# php_server resolve o front-controller do Laravel (arquivo estático ou index.php)
 	php_server
 }
