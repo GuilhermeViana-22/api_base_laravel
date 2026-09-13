@@ -1,0 +1,106 @@
+networks:
+  api-base-internal:
+    driver: bridge
+  adsplayx-public:
+    external: true
+
+volumes:
+  api_base_public_storage:
+
+services:
+  nginx:
+    image: nginx:stable-alpine
+    container_name: nginx_adsplayx_api_base
+    ports:
+      - "8020:80"
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./nginx/default.conf:/etc/nginx/conf.d/default.conf
+      - api_base_public_storage:/var/www/html/storage/app/public
+    depends_on:
+      - php
+    networks:
+      - api-base-internal
+      - adsplayx-public
+
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: app_adsplayx_api_base
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./php/additional_config.ini:/usr/local/etc/php/conf.d/additional_config.ini
+      - api_base_public_storage:/var/www/html/storage/app/public
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - api-base-internal
+
+  artisan:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: artisan_adsplayx_api_base
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./php/additional_config.ini:/usr/local/etc/php/conf.d/additional_config.ini
+      - api_base_public_storage:/var/www/html/storage/app/public
+    working_dir: /var/www/html
+    # Entrypoint leve (não roda migrate/Passport de novo — isso já acontece
+    # no boot do serviço "php" — só garante permissão de storage/).
+    entrypoint: ['/entrypoint-artisan.sh']
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - api-base-internal
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: worker_adsplayx_api_base
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html:delegated
+      - ./php/additional_config.ini:/usr/local/etc/php/conf.d/additional_config.ini
+      - api_base_public_storage:/var/www/html/storage/app/public
+    working_dir: /var/www/html
+    entrypoint: ['/entrypoint-artisan.sh']
+    command: ['queue:work', '--sleep=3', '--tries=3', '--timeout=60']
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    depends_on:
+      mysql:
+        condition: service_healthy
+    networks:
+      - api-base-internal
+
+  mysql:
+    image: mysql:8.0.29
+    container_name: adsplay_api_base_db
+    restart: unless-stopped
+    tty: true
+    ports:
+      - "4309:3306"
+    volumes:
+      - ./mysql:/var/lib/mysql
+    command: --max_allowed_packet=1G
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-adsplay_api_base}
+      MYSQL_USER: ${MYSQL_USER:-adsplay_api_base}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-secret}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root}
+      SERVICE_TAGS: dev
+      SERVICE_NAME: mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-p${MYSQL_ROOT_PASSWORD:-root}"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+      start_period: 30s
+    networks:
+      - api-base-internal

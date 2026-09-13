@@ -1,0 +1,36 @@
+# Imagem de DESENVOLVIMENTO local — nginx (serviço separado) + php-fpm.
+# Usada pelo docker-compose.yml (dev). Para produção/Dokploy, ver
+# Dockerfile.frankenphp + docker-compose.prod.yml.
+FROM php:8.4-fpm-alpine
+
+WORKDIR /var/www/html
+
+RUN docker-php-ext-install pdo pdo_mysql
+
+RUN apk update && apk add --no-cache libpng-dev netcat-openbsd bash
+
+RUN apk add --no-cache libwebp-dev \
+    libjpeg-turbo-dev \
+    libpng-dev libxpm-dev \
+    zlib-dev libzip-dev \
+    freetype-dev
+
+RUN docker-php-ext-configure gd \
+    --enable-gd \
+    --with-webp \
+    --with-jpeg \
+    --with-xpm \
+    --with-freetype
+
+RUN docker-php-ext-install gd exif bcmath zip
+
+RUN curl -sS https://getcomposer.org/installer | php -- --install-dir=/usr/local/bin --filename=composer
+
+RUN composer --version && php --version
+
+COPY docker/entrypoint.sh /entrypoint.sh
+COPY docker/entrypoint-artisan.sh /entrypoint-artisan.sh
+RUN chmod +x /entrypoint.sh /entrypoint-artisan.sh
+
+ENTRYPOINT ["/entrypoint.sh"]
+CMD ["php-fpm"]

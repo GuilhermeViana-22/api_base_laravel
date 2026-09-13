@@ -1,0 +1,15 @@
+{
+	frankenphp
+}
+
+# Traefik já termina TLS e fala HTTP puro com este container — por isso
+# escuta só :80, sem nada de HTTPS aqui (evita o FrankenPHP tentar emitir
+# certificado próprio, que não faz sentido atrás de um proxy).
+:80 {
+	root * /var/www/html/public
+	encode gzip
+
+	# php_server já resolve o front-controller do Laravel (tenta arquivo
+	# estático, cai pra index.php) — substitui nginx + php-fpm inteiros.
+	php_server
+}

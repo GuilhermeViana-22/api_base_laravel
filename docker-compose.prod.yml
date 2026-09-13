@@ -1,0 +1,56 @@
+# Compose de PRODUÇÃO — pensado pro deploy no Dokploy (Traefik como único
+# proxy, sem nginx no meio). Diferenças em relação ao docker-compose.yml de
+# dev local:
+#   - Sem serviço "nginx": o serviço "php" já fala HTTP direto via
+#     FrankenPHP (ver Dockerfile.frankenphp / docker/Caddyfile).
+#   - Sem serviço "mysql": o banco de produção é externo/gerenciado (ver
+#     DB_HOST/DB_PORT no .env de produção), não roda dentro desta stack.
+#   - Sem rede "adsplayx-shared"/"adsplayx-public" nem extra_hosts
+#     "host.docker.internal" — isso existe só pra contornar a instabilidade
+#     de rede do WSL2/Docker Desktop em dev local, não se aplica a um host
+#     real gerenciado pelo Dokploy.
+#
+# ⚠️ As labels do Traefik abaixo são um EXEMPLO — o Dokploy normalmente
+# gerencia isso pela própria UI (aba de Domínios do app). O que importa de
+# verdade é apontar o roteamento pro serviço "php", porta 80, HTTP.
+
+volumes:
+  api_base_public_storage:
+
+services:
+  php:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp
+    container_name: app_adsplayx_api_base
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html:delegated
+      - api_base_public_storage:/var/www/html/storage/app/public
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.services.api-base.loadbalancer.server.port=80"
+
+  worker:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp
+    container_name: worker_adsplayx_api_base
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html:delegated
+      - api_base_public_storage:/var/www/html/storage/app/public
+    entrypoint: ['/entrypoint-artisan.sh']
+    command: ['queue:work', '--sleep=3', '--tries=3', '--timeout=60']
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: Dockerfile.frankenphp
+    container_name: scheduler_adsplayx_api_base
+    restart: unless-stopped
+    volumes:
+      - ./src:/var/www/html:delegated
+      - api_base_public_storage:/var/www/html/storage/app/public
+    entrypoint: ['/entrypoint-artisan.sh']
+    command: ['schedule:work']
