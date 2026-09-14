@@ -13,7 +13,10 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        //
+        // Atrás do Traefik: confia nos X-Forwarded-* para o Laravel enxergar
+        // HTTPS e o host público. Seguro porque o container não publica porta
+        // no host; só o proxy chega nele.
+        $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         $exceptions->shouldRenderJsonWhen(

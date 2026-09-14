@@ -1,24 +1,35 @@
 # Compose de PRODUÇÃO — um container só (Dockerfile na raiz), no mesmo formato
-# do Arquiteto Online: a API sobe na 8019 e o start.sh cuida de Passport,
-# migrations e da fila em segundo plano.
+# do Arquiteto Online: a API escuta na 8019 dentro do container e o start.sh
+# cuida de Passport, migrations e da fila em segundo plano.
 #
 #   docker compose -f docker-compose.prod.yml up -d --build
 #
-# O banco é externo/gerenciado (DB_HOST no .env). As variáveis vêm de
-# src/.env (ou do painel do Dokploy, que injeta as mesmas chaves).
+# Publicação: Traefik do Dokploy, em https://univesp.guilhermeviana.com.
+# Nenhuma porta é aberta no host; só o Traefik (rede dokploy-network) fala
+# com o container. O TLS (Let's Encrypt) termina no Traefik.
+#
+# O banco é externo/gerenciado (DB_HOST). As variáveis vêm do painel do
+# Dokploy (aba Environment, gravada no .env ao lado deste arquivo) ou de
+# src/.env. Não cadastre domínio na aba "Domains" do Dokploy: o roteamento já
+# está nos labels abaixo e dois routers para o mesmo Host brigam entre si.
 
 services:
   api:
     build:
       context: .
       dockerfile: Dockerfile
-    container_name: univesp_api
     restart: unless-stopped
     env_file:
       - path: ./src/.env
         required: false
-    ports:
-      - '${API_PORT:-8019}:8019'
+      # .env do Dokploy (aba Environment) vence o src/.env
+      - path: ./.env
+        required: false
+    environment:
+      # Monta a URL pública das imagens (Storage::url) com o domínio certo
+      APP_URL: ${APP_URL:-https://univesp.guilhermeviana.com}
+    expose:
+      - '8019'
     volumes:
       # Fotos de capa e banners enviados pelo painel sobrevivem a novos deploys
       - univesp_api_public_storage:/var/www/html/storage/app/public
@@ -27,7 +38,24 @@ services:
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network=dokploy-network"
+
+      # Serviço: porta HTTP do FrankenPHP dentro do container
       - "traefik.http.services.univesp-api.loadbalancer.server.port=8019"
+
+      # HTTP (80): só redireciona para HTTPS
+      - "traefik.http.routers.univesp-api-http.rule=Host(`univesp.guilhermeviana.com`)"
+      - "traefik.http.routers.univesp-api-http.entrypoints=web"
+      - "traefik.http.routers.univesp-api-http.middlewares=univesp-api-https-redirect"
+      - "traefik.http.routers.univesp-api-http.service=univesp-api"
+      - "traefik.http.middlewares.univesp-api-https-redirect.redirectscheme.scheme=https"
+      - "traefik.http.middlewares.univesp-api-https-redirect.redirectscheme.permanent=true"
+
+      # HTTPS (443): certificado Let's Encrypt emitido pelo Traefik
+      - "traefik.http.routers.univesp-api-https.rule=Host(`univesp.guilhermeviana.com`)"
+      - "traefik.http.routers.univesp-api-https.entrypoints=websecure"
+      - "traefik.http.routers.univesp-api-https.tls=true"
+      - "traefik.http.routers.univesp-api-https.tls.certresolver=letsencrypt"
+      - "traefik.http.routers.univesp-api-https.service=univesp-api"
 
 networks:
   dokploy-network:
