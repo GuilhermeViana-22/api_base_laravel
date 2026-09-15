@@ -30,7 +30,13 @@ class AppServiceProvider extends ServiceProvider
 
         // Login/cadastro/verificação: limita tentativas por e-mail + IP.
         RateLimiter::for('auth', function (Request $request) {
-            return Limit::perMinute(5)->by(strtolower((string) $request->input('email')).'|'.$request->ip());
+            return Limit::perMinute(5)
+                ->by(mb_strtolower(trim((string) $request->input('email'))).'|'.$request->ip())
+                ->response(fn (Request $request, array $headers) => response()->json([
+                    'message' => 'Muitas tentativas. Aguarde um minuto e tente novamente.',
+                    'code' => 'too_many_requests',
+                    'retry_after' => (int) ($headers['Retry-After'] ?? 60),
+                ], 429, $headers));
         });
     }
 }

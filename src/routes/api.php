@@ -13,8 +13,10 @@ use Illuminate\Support\Facades\Route;
 
 Route::prefix('auth')->group(function () {
     Route::middleware('throttle:auth')->group(function () {
+        // Cadastro: register -> (e-mail com código) -> verify-email, que já devolve a sessão
         Route::post('register', [AuthController::class, 'register']);
-        Route::post('verify-code', [AuthController::class, 'verifyCode']);
+        Route::post('verify-email', [AuthController::class, 'verifyEmail']);
+        Route::post('resend-code', [AuthController::class, 'resendCode']);
         Route::post('login', [AuthController::class, 'login']);
     });
 

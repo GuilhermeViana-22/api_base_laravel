@@ -131,4 +131,25 @@ return [
 
     'token_ttl_minutes' => (int) env('AUTH_TOKEN_TTL_MINUTES', 480),
 
+    /*
+    |--------------------------------------------------------------------------
+    | Verificação de e-mail por código
+    |--------------------------------------------------------------------------
+    |
+    | No cadastro a API envia um código numérico para o e-mail informado.
+    | A conta só faz login depois de confirmar esse código.
+    |
+    | - code_ttl_minutes: validade de cada código enviado;
+    | - max_attempts: erros aceitos por código antes de exigir um novo;
+    | - resend_cooldown_seconds: intervalo mínimo entre dois envios.
+    |
+    */
+
+    'verification' => [
+        'code_length' => 6,
+        'code_ttl_minutes' => (int) env('AUTH_VERIFICATION_CODE_TTL_MINUTES', 15),
+        'max_attempts' => (int) env('AUTH_VERIFICATION_MAX_ATTEMPTS', 5),
+        'resend_cooldown_seconds' => (int) env('AUTH_VERIFICATION_RESEND_COOLDOWN_SECONDS', 60),
+    ],
+
 ];

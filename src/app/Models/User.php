@@ -2,8 +2,8 @@
 
 namespace App\Models;
 
-use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Passport\HasApiTokens;
@@ -21,17 +21,20 @@ class User extends Authenticatable
     protected $hidden = [
         'password',
         'remember_token',
-        'verification_code',
-        'verification_code_expires_at',
     ];
 
     protected function casts(): array
     {
         return [
             'email_verified_at' => 'datetime',
-            'verification_code_expires_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    /** Código de verificação de e-mail ainda pendente (se houver). */
+    public function emailVerificationCode(): HasOne
+    {
+        return $this->hasOne(EmailVerificationCode::class);
     }
 
     public function isEmailVerified(): bool

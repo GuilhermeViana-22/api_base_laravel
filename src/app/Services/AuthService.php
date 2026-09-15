@@ -2,70 +2,77 @@
 
 namespace App\Services;
 
-use App\Exceptions\EmailNotVerifiedException;
-use App\Exceptions\InvalidCredentialsException;
-use App\Exceptions\InvalidVerificationCodeException;
+use App\Exceptions\AuthException;
+use App\Models\EmailVerificationCode;
 use App\Models\User;
-use App\Notifications\VerificationCodeNotification;
 use Illuminate\Support\Facades\Hash;
 
+/**
+ * Regras de cadastro, login e sessão. O código de verificação de e-mail
+ * fica a cargo do EmailVerificationService.
+ */
 class AuthService
 {
-    private const CODE_TTL_MINUTES = 15;
-
-    public function register(array $data): User
+    public function __construct(private readonly EmailVerificationService $verification)
     {
-        $user = User::create([
-            'name' => $data['name'],
-            'email' => $data['email'],
-            'password' => Hash::make($data['password']),
-        ]);
-
-        $this->generateAndSendVerificationCode($user);
-
-        return $user;
     }
 
-    public function verifyCode(string $email, string $code): User
+    /**
+     * Cria a conta (ou atualiza uma ainda não confirmada com o mesmo e-mail,
+     * para quem se cadastrou e não chegou a digitar o código) e envia o código.
+     *
+     * @return array{user: User, verification: EmailVerificationCode}
+     */
+    public function register(array $data): array
+    {
+        $user = User::firstOrNew(['email' => $data['email']]);
+        $user->fill([
+            'name' => $data['name'],
+            'password' => $data['password'],
+        ])->save();
+
+        return [
+            'user' => $user,
+            'verification' => $user->wasRecentlyCreated
+                ? $this->verification->send($user)
+                : $this->verification->sendIfNeeded($user),
+        ];
+    }
+
+    /**
+     * Confere o código e já devolve a sessão, para a pessoa entrar direto no painel.
+     *
+     * @return array{user: User, access_token: string, expires_at: mixed}
+     */
+    public function verifyEmail(string $email, string $code): array
     {
         $user = User::where('email', $email)->firstOrFail();
 
-        $isValid = $user->verification_code === $code
-            && $user->verification_code_expires_at !== null
-            && $user->verification_code_expires_at->isFuture();
+        $this->verification->verify($user, $code);
 
-        if (!$isValid) {
-            throw new InvalidVerificationCodeException();
-        }
-
-        $user->forceFill([
-            'email_verified_at' => now(),
-            'verification_code' => null,
-            'verification_code_expires_at' => null,
-        ])->save();
-
-        return $user;
+        return $this->issueToken($user);
     }
 
+    /** Reenvio pedido pela pessoa na tela de verificação. */
+    public function resendCode(string $email): EmailVerificationCode
+    {
+        return $this->verification->send(User::where('email', $email)->firstOrFail());
+    }
+
+    /** @return array{user: User, access_token: string, expires_at: mixed} */
     public function login(string $email, string $password): array
     {
         $user = User::where('email', $email)->first();
 
         if (!$user || !Hash::check($password, $user->password)) {
-            throw new InvalidCredentialsException();
+            throw AuthException::invalidCredentials();
         }
 
         if (!$user->isEmailVerified()) {
-            throw new EmailNotVerifiedException();
+            throw AuthException::emailNotVerified($this->verification->sendIfNeeded($user));
         }
 
-        $tokenResult = $user->createToken('auth_token');
-
-        return [
-            'user' => $user,
-            'access_token' => $tokenResult->accessToken,
-            'expires_at' => $tokenResult->token->expires_at,
-        ];
+        return $this->issueToken($user);
     }
 
     public function logout(User $user): void
@@ -73,15 +80,14 @@ class AuthService
         $user->token()->revoke();
     }
 
-    private function generateAndSendVerificationCode(User $user): void
+    private function issueToken(User $user): array
     {
-        $code = (string) random_int(100000, 999999);
+        $tokenResult = $user->createToken('auth_token');
 
-        $user->forceFill([
-            'verification_code' => $code,
-            'verification_code_expires_at' => now()->addMinutes(self::CODE_TTL_MINUTES),
-        ])->save();
-
-        $user->notify(new VerificationCodeNotification($code));
+        return [
+            'user' => $user,
+            'access_token' => $tokenResult->accessToken,
+            'expires_at' => $tokenResult->token->expires_at,
+        ];
     }
 }

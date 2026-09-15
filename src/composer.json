@@ -10,6 +10,7 @@
         "laravel/framework": "^13.17",
         "laravel/passport": "^13.8",
         "laravel/tinker": "^3.0",
+        "resend/resend-php": "^1.15",
         "symfony/html-sanitizer": "^8.1"
     },
     "require-dev": {

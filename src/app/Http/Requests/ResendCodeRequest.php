@@ -5,7 +5,7 @@ namespace App\Http\Requests;
 use App\Http\Requests\Concerns\NormalizesEmail;
 use Illuminate\Foundation\Http\FormRequest;
 
-class LoginRequest extends FormRequest
+class ResendCodeRequest extends FormRequest
 {
     use NormalizesEmail;
 
@@ -17,8 +17,7 @@ class LoginRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string'],
+            'email' => ['required', 'string', 'email', 'exists:users,email'],
         ];
     }
 
@@ -27,7 +26,7 @@ class LoginRequest extends FormRequest
         return [
             'email.required' => 'Informe seu e-mail.',
             'email.email' => 'Informe um e-mail válido.',
-            'password.required' => 'Informe sua senha.',
+            'email.exists' => 'Não encontramos um cadastro com este e-mail.',
         ];
     }
 }
