@@ -3,7 +3,6 @@
 namespace App\Mail;
 
 use Illuminate\Bus\Queueable;
-use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Mail\Mailable;
 use Illuminate\Mail\Mailables\Content;
 use Illuminate\Mail\Mailables\Envelope;
@@ -11,9 +10,11 @@ use Illuminate\Queue\SerializesModels;
 
 /**
  * E-mail com o código de verificação do cadastro.
- * Vai pela fila (worker) para a resposta da API não esperar o Resend.
+ *
+ * Enviado na hora, sem fila: a API só confirma o envio para o front depois
+ * que o provedor aceitou a mensagem (ver EmailVerificationService).
  */
-class VerificationCodeMail extends Mailable implements ShouldQueue
+class VerificationCodeMail extends Mailable
 {
     use Queueable, SerializesModels;
 

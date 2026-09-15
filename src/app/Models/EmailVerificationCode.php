@@ -36,6 +36,12 @@ class EmailVerificationCode extends Model
         return $this->belongsTo(User::class);
     }
 
+    /** `true` quando o código foi (re)gerado e enviado nesta requisição. */
+    public function wasJustSent(): bool
+    {
+        return $this->wasRecentlyCreated || $this->wasChanged('code_hash');
+    }
+
     public function isExpired(): bool
     {
         return $this->expires_at->isPast();

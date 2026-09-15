@@ -20,6 +20,11 @@ return [
 
     'resend' => [
         'key' => env('RESEND_API_KEY'),
+        // Limites da chamada HTTP ao Resend (segundos). O envio acontece dentro
+        // da requisição do cadastro, então precisa falhar rápido e bem abaixo
+        // do timeout do front.
+        'connect_timeout' => (float) env('RESEND_CONNECT_TIMEOUT', 5),
+        'timeout' => (float) env('RESEND_TIMEOUT', 10),
     ],
 
     'ses' => [

@@ -5,8 +5,12 @@ namespace Tests\Feature;
 use App\Mail\VerificationCodeMail;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Mail\MailManager;
 use Illuminate\Support\Facades\Artisan;
 use Illuminate\Support\Facades\Mail;
+use Symfony\Component\Mailer\Exception\TransportException;
+use Symfony\Component\Mailer\SentMessage;
+use Symfony\Component\Mailer\Transport\AbstractTransport;
 use Tests\TestCase;
 
 class AuthRegistrationTest extends TestCase
@@ -34,10 +38,10 @@ class AuthRegistrationTest extends TestCase
         ]);
     }
 
-    /** Código do último e-mail enfileirado para o endereço. */
+    /** Código do último e-mail enviado para o endereço. */
     private function lastCode(string $email = self::EMAIL): string
     {
-        $mail = Mail::queued(VerificationCodeMail::class, fn ($m) => $m->hasTo($email))->last();
+        $mail = Mail::sent(VerificationCodeMail::class, fn ($m) => $m->hasTo($email))->last();
         $this->assertNotNull($mail, 'Nenhum e-mail de verificação enviado.');
 
         return $mail->code;
@@ -51,6 +55,7 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonPath('data.code_length', 6)
             ->assertJsonPath('data.attempts_remaining', 5)
             ->assertJsonStructure(['message', 'data' => ['expires_at', 'resend_available_at']])
+            ->assertJsonPath('email_sent', true)
             ->assertJsonMissingPath('data.code');
 
         $user = User::where('email', self::EMAIL)->firstOrFail();
@@ -82,9 +87,11 @@ class AuthRegistrationTest extends TestCase
         $this->register()->assertCreated();
         $code = $this->lastCode();
 
-        $this->register(['name' => 'Maria S.'])->assertCreated();
+        $this->register(['name' => 'Maria S.'])
+            ->assertCreated()
+            ->assertJsonPath('email_sent', false);
 
-        Mail::assertQueuedCount(1);
+        Mail::assertSentCount(1);
         $this->assertSame('Maria S.', User::where('email', self::EMAIL)->value('name'));
         $this->postJson('/api/auth/verify-email', ['email' => self::EMAIL, 'code' => $code])->assertOk();
     }
@@ -159,7 +166,7 @@ class AuthRegistrationTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.email', self::EMAIL);
 
-        Mail::assertQueuedCount(2);
+        Mail::assertSentCount(2);
         $newCode = $this->lastCode();
 
         if ($newCode !== $firstCode) {
@@ -194,7 +201,7 @@ class AuthRegistrationTest extends TestCase
             ->assertJsonPath('verification.attempts_remaining', 5);
 
         // Código ainda válido: não manda outro e-mail só por tentar entrar.
-        Mail::assertQueuedCount(1);
+        Mail::assertSentCount(1);
     }
 
     public function test_login_with_wrong_password_returns_invalid_credentials(): void
@@ -204,6 +211,72 @@ class AuthRegistrationTest extends TestCase
         $this->postJson('/api/auth/login', ['email' => self::EMAIL, 'password' => 'errada'])
             ->assertUnauthorized()
             ->assertJsonPath('code', 'invalid_credentials');
+    }
+
+    public function test_register_is_rolled_back_when_email_cannot_be_sent(): void
+    {
+        $this->failMailDelivery();
+
+        $this->register()
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'verification_email_failed');
+
+        $this->assertDatabaseMissing('users', ['email' => self::EMAIL]);
+        $this->assertDatabaseCount('email_verification_codes', 0);
+    }
+
+    public function test_failed_resend_keeps_previous_code_valid(): void
+    {
+        $this->register();
+        $code = $this->lastCode();
+        $this->travel(61)->seconds();
+
+        $this->failMailDelivery();
+
+        $this->postJson('/api/auth/resend-code', ['email' => self::EMAIL])
+            ->assertStatus(503)
+            ->assertJsonPath('code', 'verification_email_failed');
+
+        Mail::fake();
+        $this->postJson('/api/auth/verify-email', ['email' => self::EMAIL, 'code' => $code])->assertOk();
+    }
+
+    public function test_resend_transport_has_http_timeouts(): void
+    {
+        config(['mail.default' => 'resend', 'services.resend.key' => 're_test', 'services.resend.timeout' => 7.0]);
+
+        $transport = Mail::mailer('resend')->getSymfonyTransport();
+        $this->assertInstanceOf(\Illuminate\Mail\Transport\ResendTransport::class, $transport);
+
+        $guzzle = (fn () => $this->transporter)->call((fn () => $this->resend)->call($transport));
+        $options = (fn () => $this->client)->call($guzzle)->getConfig();
+
+        $this->assertSame(7.0, $options['timeout']);
+        $this->assertSame(5.0, $options['connect_timeout']);
+    }
+
+    /**
+     * Troca o fake por um mailer real cujo transporte sempre falha,
+     * como um Resend fora do ar ou estourando o timeout.
+     */
+    private function failMailDelivery(): void
+    {
+        // Mail::fake() trocou o 'mail.manager' do container, então cria um de verdade.
+        Mail::swap(new MailManager($this->app));
+        Mail::extend('failing', fn () => new class extends AbstractTransport
+        {
+            protected function doSend(SentMessage $message): void
+            {
+                throw new TransportException('Resend timeout');
+            }
+
+            public function __toString(): string
+            {
+                return 'failing://';
+            }
+        });
+
+        config(['mail.mailers.failing' => ['transport' => 'failing'], 'mail.default' => 'failing']);
     }
 
     public function test_verification_email_renders_code_and_expiration(): void

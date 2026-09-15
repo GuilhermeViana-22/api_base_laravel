@@ -7,7 +7,9 @@ use App\Mail\VerificationCodeMail;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
+use Throwable;
 
 /**
  * Ciclo de vida do código de verificação de e-mail:
@@ -18,13 +20,17 @@ use Illuminate\Support\Facades\Mail;
  * - um código pendente por pessoa: pedir outro invalida o anterior;
  * - `max_attempts` erros invalidam o código;
  * - reenvio só depois de `resend_cooldown_seconds` do último envio.
+ *
+ * O e-mail sai na hora (sem fila), dentro de uma transação: a API só
+ * responde sucesso depois que o Resend aceitou a mensagem. Se o envio
+ * falhar, nada é gravado e o código anterior (se houver) continua valendo.
  */
 class EmailVerificationService
 {
     /**
      * Gera um código novo e envia por e-mail.
      *
-     * @throws AuthException resendCooldown quando o último envio é recente demais
+     * @throws AuthException resendCooldown (envio recente demais) | emailDeliveryFailed (Resend recusou/demorou)
      */
     public function send(User $user): EmailVerificationCode
     {
@@ -40,15 +46,20 @@ class EmailVerificationService
 
         $code = $this->generateCode();
 
-        $pending = $user->emailVerificationCode()->updateOrCreate([], [
-            'code_hash' => $this->hash($code),
-            'attempts' => 0,
-            'sent_at' => now(),
-            'expires_at' => now()->addMinutes($this->ttlMinutes()),
-        ]);
-        $user->setRelation('emailVerificationCode', $pending);
+        $pending = DB::transaction(function () use ($user, $code) {
+            $pending = $user->emailVerificationCode()->updateOrCreate([], [
+                'code_hash' => $this->hash($code),
+                'attempts' => 0,
+                'sent_at' => now(),
+                'expires_at' => now()->addMinutes($this->ttlMinutes()),
+            ]);
 
-        Mail::to($user)->send(new VerificationCodeMail($user->name, $code, $this->ttlMinutes()));
+            $this->deliver($user, $code);
+
+            return $pending;
+        });
+
+        $user->setRelation('emailVerificationCode', $pending);
 
         return $pending;
     }
@@ -115,6 +126,22 @@ class EmailVerificationService
         $availableAt = $pending->sent_at->copy()->addSeconds($this->cooldownSeconds());
 
         return max(0, (int) ceil(now()->diffInSeconds($availableAt, false)));
+    }
+
+    /** Entrega o e-mail pelo mailer padrão; qualquer falha vira um erro de API tratável. */
+    private function deliver(User $user, string $code): void
+    {
+        try {
+            Mail::to($user)->send(new VerificationCodeMail($user->name, $code, $this->ttlMinutes()));
+        } catch (Throwable $e) {
+            Log::error('Falha ao enviar o código de verificação de e-mail.', [
+                'user_id' => $user->id,
+                'mailer' => config('mail.default'),
+                'exception' => $e,
+            ]);
+
+            throw AuthException::emailDeliveryFailed();
+        }
     }
 
     private function ensureNotVerified(User $user): void

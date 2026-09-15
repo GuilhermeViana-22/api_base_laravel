@@ -5,6 +5,7 @@ namespace App\Services;
 use App\Exceptions\AuthException;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 
 /**
@@ -21,22 +22,26 @@ class AuthService
      * Cria a conta (ou atualiza uma ainda não confirmada com o mesmo e-mail,
      * para quem se cadastrou e não chegou a digitar o código) e envia o código.
      *
+     * Tudo numa transação: se o e-mail não sair, a conta não fica criada pela metade.
+     *
      * @return array{user: User, verification: EmailVerificationCode}
      */
     public function register(array $data): array
     {
-        $user = User::firstOrNew(['email' => $data['email']]);
-        $user->fill([
-            'name' => $data['name'],
-            'password' => $data['password'],
-        ])->save();
+        return DB::transaction(function () use ($data) {
+            $user = User::firstOrNew(['email' => $data['email']]);
+            $user->fill([
+                'name' => $data['name'],
+                'password' => $data['password'],
+            ])->save();
 
-        return [
-            'user' => $user,
-            'verification' => $user->wasRecentlyCreated
-                ? $this->verification->send($user)
-                : $this->verification->sendIfNeeded($user),
-        ];
+            return [
+                'user' => $user,
+                'verification' => $user->wasRecentlyCreated
+                    ? $this->verification->send($user)
+                    : $this->verification->sendIfNeeded($user),
+            ];
+        });
     }
 
     /**

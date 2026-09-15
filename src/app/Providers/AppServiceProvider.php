@@ -2,11 +2,19 @@
 
 namespace App\Providers;
 
+use GuzzleHttp\Client as GuzzleClient;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Http\Request;
+use Illuminate\Mail\Transport\ResendTransport;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\RateLimiter;
 use Illuminate\Support\ServiceProvider;
 use Laravel\Passport\Passport;
+use Resend\Client as ResendClient;
+use Resend\Transporters\HttpTransporter;
+use Resend\ValueObjects\ApiKey;
+use Resend\ValueObjects\Transporter\BaseUri;
+use Resend\ValueObjects\Transporter\Headers;
 
 class AppServiceProvider extends ServiceProvider
 {
@@ -23,6 +31,21 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Transporte "resend" com timeout: o SDK cria o Guzzle sem limite e um
+        // Resend lento prenderia a requisição do cadastro indefinidamente.
+        Mail::extend('resend', function (array $config) {
+            $http = new GuzzleClient([
+                'connect_timeout' => config('services.resend.connect_timeout'),
+                'timeout' => config('services.resend.timeout'),
+            ]);
+
+            return new ResendTransport(new ResendClient(new HttpTransporter(
+                $http,
+                BaseUri::from('api.resend.com'),
+                Headers::withAuthorization(ApiKey::from((string) ($config['key'] ?? config('services.resend.key')))),
+            )));
+        });
+
         // Validade do token Bearer entregue no login (AUTH_TOKEN_TTL_MINUTES no .env).
         Passport::personalAccessTokensExpireIn(
             now()->addMinutes((int) config('auth.token_ttl_minutes')),

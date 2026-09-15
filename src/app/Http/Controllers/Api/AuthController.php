@@ -22,6 +22,10 @@ use Illuminate\Http\Request;
  *   2. POST verify-email  -> confere o código e já faz login (200, data = sessão)
  *      POST resend-code   -> envia outro código              (200, data = verificação)
  *
+ * O e-mail com o código sai antes da resposta: 201/200 significa que o
+ * provedor aceitou a mensagem (`email_sent: true`). Se o envio falhar, 503
+ * `verification_email_failed` e nada é gravado.
+ *
  * Sucesso: `{ message, data }`. Erro de negócio: `{ message, code, ... }`
  * (ver App\Exceptions\AuthException). Validação: 422 `{ message, errors }`.
  */
@@ -33,10 +37,16 @@ class AuthController extends Controller
 
     public function register(RegisterRequest $request): JsonResponse
     {
-        $result = $this->authService->register($request->validated());
+        $verification = $this->authService->register($request->validated())['verification'];
+        $sent = $verification->wasJustSent();
 
-        return (new VerificationResource($result['verification']))
-            ->additional(['message' => 'Cadastro recebido! Enviamos um código de verificação para o seu e-mail.'])
+        return (new VerificationResource($verification))
+            ->additional([
+                'message' => $sent
+                    ? 'Cadastro recebido! Enviamos um código de verificação para o seu e-mail.'
+                    : 'Já enviamos um código para este e-mail há pouco. Use o código recebido.',
+                'email_sent' => $sent,
+            ])
             ->response()
             ->setStatusCode(201);
     }
@@ -58,7 +68,7 @@ class AuthController extends Controller
         $verification = $this->authService->resendCode($request->validated('email'));
 
         return (new VerificationResource($verification))
-            ->additional(['message' => 'Enviamos um novo código para o seu e-mail.'])
+            ->additional(['message' => 'Enviamos um novo código para o seu e-mail.', 'email_sent' => true])
             ->response();
     }
 

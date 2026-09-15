@@ -27,6 +27,7 @@ class AuthException extends Exception
     public const CODE_EXPIRED = 'verification_code_expired';
     public const TOO_MANY_ATTEMPTS = 'verification_too_many_attempts';
     public const RESEND_COOLDOWN = 'verification_resend_cooldown';
+    public const EMAIL_DELIVERY_FAILED = 'verification_email_failed';
 
     private function __construct(
         string $message,
@@ -100,6 +101,16 @@ class AuthException extends Exception
             self::RESEND_COOLDOWN,
             429,
             ['retry_after' => $seconds],
+        );
+    }
+
+    /** 503: o provedor de e-mail recusou ou não respondeu a tempo; nada foi gravado. */
+    public static function emailDeliveryFailed(): self
+    {
+        return new self(
+            'Não conseguimos enviar o código de verificação agora. Tente novamente em instantes.',
+            self::EMAIL_DELIVERY_FAILED,
+            503,
         );
     }
 

@@ -45,6 +45,7 @@ Variáveis importantes (em `src/.env` ou no painel do Dokploy):
 | `CORS_ALLOW_LOCALHOST` | `true` libera `localhost`/`127.0.0.1` em qualquer porta |
 | `MAIL_MAILER=resend`, `RESEND_API_KEY` | envio do código de verificação pelo Resend |
 | `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | remetente (domínio verificado no Resend: `guilhermeviana.com`) |
+| `RESEND_TIMEOUT`, `RESEND_CONNECT_TIMEOUT` | limite da chamada ao Resend (padrão 10 s / 5 s) |
 | `AUTH_VERIFICATION_*` | validade do código (15 min), tentativas (5) e intervalo de reenvio (60 s) |
 
 ## Rotas principais
@@ -62,7 +63,9 @@ Variáveis importantes (em `src/.env` ou no painel do Dokploy):
 
 1. `POST /api/auth/register` `{ name, email, password, password_confirmation }` → **201**
    `{ message, data: { email, code_length, expires_at, resend_available_at, attempts_remaining } }`.
-   A API gera um código de 6 dígitos (guardado só como HMAC) e envia pelo Resend, via fila.
+   A API gera um código de 6 dígitos (guardado só como HMAC) e envia pelo Resend **antes de responder**
+   (sem fila): 201 garante que o Resend aceitou o e-mail (`email_sent: true`; `false` quando já havia
+   um código válido e nada foi reenviado). Se o envio falhar ou passar do timeout, 503 e nada é gravado.
 2. `POST /api/auth/verify-email` `{ email, code }` → **200** `{ message, data: { user, access_token, token_type, expires_at } }`
    — confirmou, já está logado.
 3. `POST /api/auth/resend-code` `{ email }` → **200** com o mesmo `data` do cadastro. O código anterior deixa de valer.
@@ -77,6 +80,7 @@ Erros de negócio sempre vêm como `{ message, code, ... }` (ver `app/Exceptions
 | 410 | `verification_code_expired` | | código passou dos 15 minutos |
 | 422 | `verification_code_invalid` | `attempts_remaining` | código errado |
 | 429 | `verification_too_many_attempts` | | 5 erros no mesmo código |
+| 503 | `verification_email_failed` | | Resend recusou ou não respondeu a tempo (conta/código não gravados) |
 | 429 | `verification_resend_cooldown` | `retry_after` | reenvio antes de 60 s |
 | 429 | `too_many_requests` | `retry_after` | mais de 5 chamadas/min por e-mail + IP |
 
