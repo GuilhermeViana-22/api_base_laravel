@@ -31,6 +31,10 @@ O roteamento (HTTP → HTTPS, certificado Let's Encrypt) está nos labels do
 docker compose -f docker-compose.prod.yml up -d --build
 ```
 
+As chaves do Passport ficam em `storage/oauth-private.key` e `storage/oauth-public.key`,
+no volume `univesp_api_storage`. O `start.sh` gera o par só no primeiro deploy e depois
+reaproveita, então os tokens continuam válidos entre builds. Não apague esse volume.
+
 Variáveis importantes (em `src/.env` ou no painel do Dokploy):
 
 | Variável | Uso |
@@ -39,7 +43,6 @@ Variáveis importantes (em `src/.env` ou no painel do Dokploy):
 | `APP_URL` | `https://univesp.guilhermeviana.com` (padrão do compose; monta a URL das imagens) |
 | `FRONTEND_URL` | front liberado no CORS: `https://univesp-tv-front.vercel.app` |
 | `CORS_ALLOW_LOCALHOST` | `true` libera `localhost`/`127.0.0.1` em qualquer porta |
-| `PASSPORT_PRIVATE_KEY_BASE64`, `PASSPORT_PUBLIC_KEY_BASE64` | mantêm os tokens válidos entre deploys |
 | `MAIL_MAILER=resend`, `RESEND_API_KEY` | envio do código de verificação pelo Resend |
 | `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | remetente (domínio verificado no Resend: `guilhermeviana.com`) |
 | `AUTH_VERIFICATION_*` | validade do código (15 min), tentativas (5) e intervalo de reenvio (60 s) |

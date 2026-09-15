@@ -31,7 +31,10 @@ services:
     expose:
       - '8019'
     volumes:
-      # Fotos de capa e banners enviados pelo painel sobrevivem a novos deploys
+      # storage/ inteiro sobrevive a novos deploys: chaves do Passport
+      # (storage/oauth-*.key, geradas uma vez pelo start.sh) e logs
+      - univesp_api_storage:/var/www/html/storage
+      # Fotos de capa e banners enviados pelo painel (volume já existente)
       - univesp_api_public_storage:/var/www/html/storage/app/public
     networks:
       - dokploy-network
@@ -62,4 +65,5 @@ networks:
     external: true
 
 volumes:
+  univesp_api_storage:
   univesp_api_public_storage:

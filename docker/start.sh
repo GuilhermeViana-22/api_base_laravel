@@ -39,20 +39,22 @@ php artisan storage:link --force || true
 # ---------------------------------------------------------------------------
 # Passport
 #
-# As chaves precisam sobreviver ao deploy: gerar um par novo invalida na hora
-# TODOS os tokens já emitidos (quem estava logado no painel cai). Por isso o
-# par vem das env vars quando elas existem, e só é gerado quando não há nenhum.
-#   PASSPORT_PRIVATE_KEY_BASE64=$(base64 -w0 storage/oauth-private.key)
-#   PASSPORT_PUBLIC_KEY_BASE64=$(base64 -w0 storage/oauth-public.key)
+# As chaves ficam onde o Passport procura por padrão: storage/oauth-*.key.
+# A pasta storage/ é um volume (docker-compose.prod.yml), então o par gerado
+# no primeiro deploy é reaproveitado em todos os seguintes. Gerar um par novo
+# invalidaria na hora TODOS os tokens já emitidos (quem estava logado cai).
+#
+# Só gera quando não existe nenhuma das duas; se sobrou só uma (volume
+# corrompido/editado à mão), para o boot em vez de sobrescrever a que existe.
 # ---------------------------------------------------------------------------
-if [ -n "$PASSPORT_PRIVATE_KEY_BASE64" ] && [ -n "$PASSPORT_PUBLIC_KEY_BASE64" ]; then
-    echo "$PASSPORT_PRIVATE_KEY_BASE64" | base64 -d > "$PASSPORT_PRIVATE_KEY_PATH"
-    echo "$PASSPORT_PUBLIC_KEY_BASE64" | base64 -d > "$PASSPORT_PUBLIC_KEY_PATH"
-fi
-
-if [ ! -f "$PASSPORT_PRIVATE_KEY_PATH" ] || [ ! -f "$PASSPORT_PUBLIC_KEY_PATH" ]; then
-    echo "[start] Gerando chaves do Passport (tokens antigos deixam de valer)..."
+if [ -f "$PASSPORT_PRIVATE_KEY_PATH" ] && [ -f "$PASSPORT_PUBLIC_KEY_PATH" ]; then
+    echo "[start] Chaves do Passport encontradas em storage/, reaproveitando."
+elif [ ! -f "$PASSPORT_PRIVATE_KEY_PATH" ] && [ ! -f "$PASSPORT_PUBLIC_KEY_PATH" ]; then
+    echo "[start] Nenhuma chave do Passport em storage/: gerando o par (primeiro deploy)..."
     php artisan passport:keys --no-interaction
+else
+    echo "[start] ERRO: só uma das chaves do Passport existe em storage/. Restaure o par ou apague as duas." >&2
+    exit 1
 fi
 
 # league/oauth2-server recusa chaves com permissão aberta demais
