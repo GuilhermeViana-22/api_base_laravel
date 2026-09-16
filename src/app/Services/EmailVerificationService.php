@@ -6,6 +6,7 @@ use App\Exceptions\AuthException;
 use App\Mail\VerificationCodeMail;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
+use Closure;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
@@ -87,9 +88,19 @@ class EmailVerificationService
     /**
      * Confere o código digitado e marca o e-mail como verificado.
      *
+     * `$onVerified` roda na mesma transação da confirmação (ex.: emitir o token
+     * de login): se ele falhar, a confirmação é desfeita e o código continua
+     * valendo, em vez de deixar a conta confirmada sem a pessoa conseguir entrar.
+     * Tentativas erradas ficam fora da transação e sempre contam.
+     *
+     * @template T
+     *
+     * @param  (Closure(): T)|null  $onVerified
+     * @return T|null
+     *
      * @throws AuthException emailAlreadyVerified | codeExpired | tooManyAttempts | invalidCode
      */
-    public function verify(User $user, string $code): void
+    public function verify(User $user, string $code, ?Closure $onVerified = null): mixed
     {
         $this->ensureNotVerified($user);
 
@@ -112,12 +123,16 @@ class EmailVerificationService
                 : AuthException::tooManyAttempts();
         }
 
-        DB::transaction(function () use ($user, $pending) {
+        $result = DB::transaction(function () use ($user, $pending, $onVerified) {
             $user->forceFill(['email_verified_at' => now()])->save();
             $pending->delete();
+
+            return $onVerified ? $onVerified() : null;
         });
 
         $user->unsetRelation('emailVerificationCode');
+
+        return $result;
     }
 
     /** Segundos até poder pedir outro código (0 = já pode). */

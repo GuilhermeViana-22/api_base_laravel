@@ -112,6 +112,32 @@ class AuthRegistrationTest extends TestCase
         $this->assertNull($user->emailVerificationCode);
     }
 
+    public function test_confirmation_is_rolled_back_when_login_token_cannot_be_issued(): void
+    {
+        $this->register();
+        $code = $this->lastCode();
+
+        // Sem client de personal access o Passport não emite o token (falha no login).
+        \Illuminate\Support\Facades\DB::table('oauth_clients')->delete();
+        $this->withoutExceptionHandling();
+
+        try {
+            $this->postJson('/api/auth/verify-email', ['email' => self::EMAIL, 'code' => $code]);
+            $this->fail('Era esperado erro ao emitir o token.');
+        } catch (\Throwable) {
+            // esperado
+        }
+
+        $user = User::where('email', self::EMAIL)->firstOrFail();
+        $this->assertFalse($user->isEmailVerified());
+        $this->assertNotNull($user->emailVerificationCode);
+
+        // Com o login funcionando de novo, o mesmo código ainda confirma a conta.
+        Artisan::call('passport:client', ['--personal' => true, '--name' => 'Testes', '--no-interaction' => true]);
+        $this->withExceptionHandling();
+        $this->postJson('/api/auth/verify-email', ['email' => self::EMAIL, 'code' => $code])->assertOk();
+    }
+
     public function test_wrong_code_counts_attempts_until_blocked(): void
     {
         $this->register();

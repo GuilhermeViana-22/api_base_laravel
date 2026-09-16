@@ -53,9 +53,7 @@ class AuthService
     {
         $user = User::where('email', $email)->firstOrFail();
 
-        $this->verification->verify($user, $code);
-
-        return $this->issueToken($user);
+        return $this->verification->verify($user, $code, fn () => $this->issueToken($user));
     }
 
     /** Reenvio pedido pela pessoa na tela de verificação. */

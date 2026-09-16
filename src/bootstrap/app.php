@@ -1,5 +1,6 @@
 <?php
 
+use App\Exceptions\AuthException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -19,6 +20,10 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->trustProxies(at: '*');
     })
     ->withExceptions(function (Exceptions $exceptions): void {
+        // Erros de negócio da autenticação (código errado, e-mail não confirmado...)
+        // são respostas esperadas, não falhas: não poluem o log de produção.
+        $exceptions->dontReport([AuthException::class]);
+
         $exceptions->shouldRenderJsonWhen(
             fn (Request $request) => $request->is('api/*') || $request->expectsJson(),
         );
