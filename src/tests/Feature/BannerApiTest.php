@@ -52,6 +52,30 @@ class BannerApiTest extends TestCase
         $this->getJson('/api/banners/noticias')->assertJsonPath('data.title', 'Novidades da semana');
     }
 
+    public function test_banners_with_optional_label_accept_an_empty_label(): void
+    {
+        Passport::actingAs(User::factory()->create());
+
+        foreach (Banner::OPTIONAL_LABEL as $key) {
+            $this->getJson("/api/banners/{$key}")->assertOk()->assertJsonPath('data.key', $key);
+
+            $this->putJson("/api/admin/banners/{$key}", ['label' => '', 'title' => ''])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['title'])
+                ->assertJsonMissingValidationErrors(['label']);
+
+            $this->putJson("/api/admin/banners/{$key}", ['label' => '', 'title' => 'Inscrições abertas'])
+                ->assertOk()
+                ->assertJsonPath('data.label', null)
+                ->assertJsonPath('data.title', 'Inscrições abertas');
+        }
+
+        // O de notícias continua exigindo o rótulo.
+        $this->putJson('/api/admin/banners/noticias', ['label' => '', 'title' => 'Novidades'])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['label']);
+    }
+
     public function test_admin_replaces_and_removes_image(): void
     {
         Storage::fake('public');

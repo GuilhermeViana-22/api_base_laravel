@@ -11,6 +11,10 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * O site público renderiza o corpo com v-html, então só passa o que o
  * editor sabe produzir (a mesma lista do `valid_elements` do front):
  * nada de script, style, iframe ou atributos de evento.
+ *
+ * Alinhamento e cor do texto viajam como classe (`texto-centro`,
+ * `texto-vermelho`), e não como `style`: assim o site controla a aparência e
+ * nenhum CSS arbitrário entra pelo editor.
  */
 class ContentSanitizer
 {
@@ -29,6 +33,7 @@ class ContentSanitizer
             ->allowElement('i')
             ->allowElement('u')
             ->allowElement('s')
+            ->allowElement('span', $alinhamento)
             ->allowElement('h2', $alinhamento)
             ->allowElement('h3', $alinhamento)
             ->allowElement('blockquote', $alinhamento)

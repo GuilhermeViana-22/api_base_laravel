@@ -13,7 +13,7 @@ use Illuminate\Support\Facades\Storage;
  *
  * @property int $id
  * @property string $key
- * @property string $label texto pequeno acima da faixa vermelha
+ * @property string|null $label texto pequeno acima da faixa vermelha (opcional só em OPTIONAL_LABEL)
  * @property string $title texto da faixa vermelha
  * @property string|null $image_path caminho no disco `public`
  */
@@ -22,14 +22,41 @@ class Banner extends Model
     /** Banner do topo de /noticias (o rótulo também aparece em /noticias/{id}). */
     public const NEWS = 'noticias';
 
+    /** Banner do topo de /vestibular. */
+    public const VESTIBULAR = 'vestibular';
+
+    /** Banner do topo de /provao-paulista. */
+    public const PROVAO = 'provao-paulista';
+
+    /** Banner do topo de /institucional. */
+    public const INSTITUTIONAL = 'institucional';
+
     /** Chaves aceitas nas rotas `/banners/{key}`. */
-    public const KEYS = [self::NEWS];
+    public const KEYS = [self::NEWS, self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL];
+
+    /**
+     * Banners em que o rótulo pode ficar vazio. Em notícias ele é obrigatório
+     * porque também identifica a seção no topo de cada notícia.
+     */
+    public const OPTIONAL_LABEL = [self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL];
 
     /** Textos com que cada banner nasce, iguais aos do site original. */
     public const DEFAULTS = [
         self::NEWS => [
             'label' => 'Notícias UNIVESP',
             'title' => 'Fique por dentro do que acontece na universidade',
+        ],
+        self::VESTIBULAR => [
+            'label' => 'Vestibular UNIVESP',
+            'title' => 'Inscrições, editais e resultados do vestibular',
+        ],
+        self::PROVAO => [
+            'label' => 'Provão Paulista',
+            'title' => 'A sua vaga na universidade pública pelo Provão Paulista',
+        ],
+        self::INSTITUTIONAL => [
+            'label' => 'Institucional',
+            'title' => 'Conheça a UNIVESP',
         ],
     ];
 

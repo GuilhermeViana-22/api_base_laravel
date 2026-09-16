@@ -2,6 +2,7 @@
 
 namespace App\Http\Requests\Admin;
 
+use App\Models\Banner;
 use Illuminate\Foundation\Http\FormRequest;
 
 /**
@@ -9,6 +10,7 @@ use Illuminate\Foundation\Http\FormRequest;
  *
  * Os limites seguem o espaço do hero: o rótulo é uma linha curta e o título
  * precisa caber na faixa vermelha (883px no computador) em até 3 linhas.
+ * O rótulo só pode ficar vazio nos banners de Banner::OPTIONAL_LABEL.
  */
 class UpdateBannerRequest extends FormRequest
 {
@@ -20,7 +22,11 @@ class UpdateBannerRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'label' => ['required', 'string', 'max:60'],
+            'label' => [
+                in_array($this->route('key'), Banner::OPTIONAL_LABEL, true) ? 'nullable' : 'required',
+                'string',
+                'max:60',
+            ],
             'title' => ['required', 'string', 'max:150'],
         ];
     }
