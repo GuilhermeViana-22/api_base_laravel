@@ -3,22 +3,32 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Support\SiteMenu;
 use App\Support\SiteRoutes;
-use App\Support\SectionPages;
 use Illuminate\Http\JsonResponse;
 
 /**
- * Rotas públicas do site (`/api/site/rotas`).
+ * Rotas e menu do site público.
  *
- * Abastece o select "para onde o botão leva" do painel. Vêm agrupadas
- * (Principais, Institucional, Pesquisa, Transparência) porque a lista é longa
- * — as páginas internas saem de SectionPages, então a resposta acompanha
- * sozinha qualquer página nova.
+ * - `/api/site/rotas`: todas as rotas, agrupadas, para o select "para onde o
+ *   botão leva" do painel.
+ * - `/api/site/menu`: o menu do cabeçalho do site, com os submenus já
+ *   montados.
+ *
+ * As duas listas saem de SectionPages, então uma página nova de seção aparece
+ * no painel e no site sem ninguém tocar no front.
  */
 class SiteRouteController extends Controller
 {
+    /** GET /api/site/rotas */
     public function index(): JsonResponse
     {
         return response()->json(['data' => SiteRoutes::grouped()]);
+    }
+
+    /** GET /api/site/menu */
+    public function menu(): JsonResponse
+    {
+        return response()->json(['data' => SiteMenu::tree()]);
     }
 }

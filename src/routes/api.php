@@ -52,6 +52,9 @@ Route::get('home', [HomeContentController::class, 'index']);
 // Rotas do site que um botão do painel pode apontar (select de destino)
 Route::get('site/rotas', [SiteRouteController::class, 'index']);
 
+// Menu do cabeçalho do site, com os submenus das seções já montados
+Route::get('site/menu', [SiteRouteController::class, 'menu']);
+
 // Páginas internas de uma seção: só a relação de rotas (slug + nome)
 Route::get('secoes/{secao}/paginas', [SectionPageController::class, 'index'])
     ->whereIn('secao', SectionPages::sections());
