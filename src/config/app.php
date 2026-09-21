@@ -43,6 +43,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | Documentação da API (Swagger)
+    |--------------------------------------------------------------------------
+    |
+    | `/api/documentation` e `/api/docs.json` só respondem quando isto é
+    | verdadeiro: em desenvolvimento, sempre; em produção, só com
+    | SWAGGER_ENABLED=true. Ver App\Http\Middleware\EnsureDocsAreEnabled.
+    |
+    */
+
+    'docs_enabled' => (bool) env('SWAGGER_ENABLED', env('APP_ENV', 'production') !== 'production'),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

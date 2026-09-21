@@ -28,6 +28,7 @@ class AuthException extends Exception
     public const TOO_MANY_ATTEMPTS = 'verification_too_many_attempts';
     public const RESEND_COOLDOWN = 'verification_resend_cooldown';
     public const EMAIL_DELIVERY_FAILED = 'verification_email_failed';
+    public const NO_PANEL_ACCESS = 'no_panel_access';
 
     private function __construct(
         string $message,
@@ -101,6 +102,19 @@ class AuthException extends Exception
             self::RESEND_COOLDOWN,
             429,
             ['retry_after' => $seconds],
+        );
+    }
+
+    /**
+     * 403: a senha confere, mas a conta não trabalha no painel — ou nunca
+     * recebeu papel (é cadastro do site público), ou está afastada.
+     */
+    public static function semAcessoAoPainel(): self
+    {
+        return new self(
+            'Esta conta não tem acesso ao painel. Fale com quem administra o site.',
+            self::NO_PANEL_ACCESS,
+            403,
         );
     }
 

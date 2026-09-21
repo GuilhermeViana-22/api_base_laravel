@@ -1,6 +1,8 @@
 <?php
 
 use App\Exceptions\AuthException;
+use App\Http\Middleware\EnsureDocsAreEnabled;
+use App\Http\Middleware\EnsurePermission;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -18,6 +20,14 @@ return Application::configure(basePath: dirname(__DIR__))
         // HTTPS e o host público. Seguro porque o container não publica porta
         // no host; só o proxy chega nele.
         $middleware->trustProxies(at: '*');
+
+        // Porteiro do Swagger: fecha /api/documentation e /api/docs.json fora
+        // de desenvolvimento (config/l5-swagger.php aponta para este alias).
+        $middleware->alias([
+            'docs.enabled' => EnsureDocsAreEnabled::class,
+            // Permissão do painel: 'pode:<modulo>,<acao>', sempre depois do auth:api.
+            'pode' => EnsurePermission::class,
+        ]);
     })
     ->withExceptions(function (Exceptions $exceptions): void {
         // Erros de negócio da autenticação (código errado, e-mail não confirmado...)

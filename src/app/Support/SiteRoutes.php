@@ -2,13 +2,16 @@
 
 namespace App\Support;
 
+use App\Models\Course;
+
 /**
  * Rotas públicas do site, para onde um botão do painel pode apontar.
  *
  * O painel usa esta lista no select de destino do botão do carrossel, e a
  * validação recusa qualquer caminho fora dela — assim nenhum botão publica um
  * link quebrado ou um endereço externo. As páginas internas das seções saem
- * de SectionPages, então nascem aqui sozinhas.
+ * de SectionPages e as páginas de curso saem do banco, então umas e outras
+ * nascem aqui sozinhas.
  */
 final class SiteRoutes
 {
@@ -20,8 +23,6 @@ final class SiteRoutes
             '/vestibular' => 'Vestibular',
             '/provao-paulista' => 'Provão Paulista',
             '/cursos' => 'Cursos',
-            '/cursos/engenharia' => 'Cursos • Engenharia',
-            '/cursos/engenharia-computacao' => 'Cursos • Engenharia de Computação',
             '/polo' => 'Polos',
             '/institucional' => 'Institucional',
             '/pesquisa' => 'Pesquisa',
@@ -48,6 +49,16 @@ final class SiteRoutes
 
         foreach (self::MAIN as $nome => $rotas) {
             $grupos[] = ['group' => $nome, 'routes' => self::format($rotas)];
+        }
+
+        // Um curso ligado no painel vira página do site: o botão pode apontar para ela.
+        $cursos = [];
+        foreach (Course::active()->ordered()->get() as $curso) {
+            $cursos[$curso->path()] = $curso->name;
+        }
+
+        if ($cursos !== []) {
+            $grupos[] = ['group' => 'Cursos', 'routes' => self::format($cursos)];
         }
 
         foreach (self::SECTION_GROUPS as $secao => $nome) {

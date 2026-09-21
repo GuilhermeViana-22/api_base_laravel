@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Http\Requests\Concerns\NormalizesEmail;
+use App\Support\SecuritySettings;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
 
@@ -24,14 +25,14 @@ class RegisterRequest extends FormRequest
                 'required', 'string', 'email', 'max:255',
                 Rule::unique('users', 'email')->whereNotNull('email_verified_at'),
             ],
-            // Mínimo de 8 caracteres, com pelo menos uma letra e um número.
-            'password' => ['required', 'string', 'min:8', 'max:255', 'regex:/\pL/u', 'regex:/\d/', 'confirmed'],
+            // A exigência vem de Configurações > Segurança (SecuritySettings).
+            'password' => ['required', 'string', 'max:255', SecuritySettings::passwordRule(), 'confirmed'],
         ];
     }
 
     public function messages(): array
     {
-        $password = 'A senha precisa ter pelo menos 8 caracteres, com letras e números.';
+        $password = SecuritySettings::passwordMessage();
 
         return [
             'name.required' => 'Informe seu nome.',

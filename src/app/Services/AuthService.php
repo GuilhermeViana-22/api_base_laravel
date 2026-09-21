@@ -5,8 +5,10 @@ namespace App\Services;
 use App\Exceptions\AuthException;
 use App\Models\EmailVerificationCode;
 use App\Models\User;
+use App\Support\SecuritySettings;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
+use Laravel\Passport\Passport;
 
 /**
  * Regras de cadastro, login e sessão. O código de verificação de e-mail
@@ -75,6 +77,13 @@ class AuthService
             throw AuthException::emailNotVerified($this->verification->sendIfNeeded($user));
         }
 
+        // O painel é o único cliente desta API: quem não tem papel (ou está
+        // afastado) não recebe token, em vez de entrar e esbarrar em 403 tela
+        // por tela.
+        if (!$user->temAcessoAoPainel()) {
+            throw AuthException::semAcessoAoPainel();
+        }
+
         return $this->issueToken($user);
     }
 
@@ -85,6 +94,11 @@ class AuthService
 
     private function issueToken(User $user): array
     {
+        // O tempo de sessão sai de Configurações > Segurança, e não mais só do
+        // .env: é o mesmo número que o painel usa para deslogar quem ficou
+        // parado, então a conta é uma só.
+        Passport::personalAccessTokensExpireIn(now()->addMinutes(SecuritySettings::sessionTimeout()));
+
         $tokenResult = $user->createToken('auth_token');
 
         return [

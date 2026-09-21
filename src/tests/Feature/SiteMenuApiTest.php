@@ -5,10 +5,14 @@ namespace Tests\Feature;
 use App\Support\SectionPages;
 use App\Support\SiteMenu;
 use App\Support\SiteRoutes;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
 class SiteMenuApiTest extends TestCase
 {
+    // O menu passou a incluir os cursos cadastrados, então precisa de banco.
+    use RefreshDatabase;
+
     public function test_it_serves_the_site_menu(): void
     {
         $resposta = $this->getJson('/api/site/menu')

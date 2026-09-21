@@ -18,7 +18,7 @@ class HomeContentApiTest extends TestCase
 
     private function logar(): void
     {
-        Passport::actingAs(User::factory()->create());
+        Passport::actingAs(User::factory()->master()->create());
     }
 
     public function test_site_receives_sections_counters_and_testimonials_at_once(): void

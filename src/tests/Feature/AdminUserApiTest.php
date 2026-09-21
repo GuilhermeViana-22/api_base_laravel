@@ -14,7 +14,7 @@ class AdminUserApiTest extends TestCase
 
     private function logar(): User
     {
-        $logado = User::factory()->create(['name' => 'Quem está logado']);
+        $logado = User::factory()->master()->create(['name' => 'Quem está logado']);
         Passport::actingAs($logado);
 
         return $logado;
@@ -60,7 +60,7 @@ class AdminUserApiTest extends TestCase
         $resposta = $this->getJson('/api/admin/users')->assertOk();
 
         $this->assertSame(
-            ['id', 'name', 'email', 'polo', 'status', 'email_verified', 'created_at', 'is_me'],
+            ['id', 'name', 'email', 'polo', 'status', 'email_verified', 'created_at', 'role', 'is_me'],
             array_keys($resposta->json('data.0')),
         );
         $this->assertStringNotContainsString('hash-do-codigo-pendente', $resposta->getContent());

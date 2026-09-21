@@ -31,7 +31,8 @@ class IndexUsersRequest extends FormRequest
 
     public function authorize(): bool
     {
-        // A rota já exige `auth:api`; ainda não há papéis dentro do painel.
+        // Quem chega aqui já passou pelo `auth:api` e pelo `pode:users,view`
+        // da rota — a permissão é decidida lá, não campo a campo.
         return true;
     }
 
@@ -44,6 +45,9 @@ class IndexUsersRequest extends FormRequest
             'status' => ['nullable', Rule::enum(UserStatus::class)],
             'registered_from' => ['nullable', 'date'],
             'registered_to' => ['nullable', 'date', 'after_or_equal:registered_from'],
+            // 'panel' = quem tem papel (tela Equipe); 'site' = só cadastro público.
+            'access' => ['nullable', Rule::in(['panel', 'site'])],
+            'role_id' => ['nullable', 'integer', 'exists:roles,id'],
             'sort' => ['nullable', Rule::in(array_keys(self::SORTS))],
             'per_page' => ['nullable', 'integer', 'min:1', 'max:'.self::PER_PAGE_MAX],
             'page' => ['nullable', 'integer', 'min:1'],
@@ -58,6 +62,8 @@ class IndexUsersRequest extends FormRequest
             'email' => 'e-mail',
             'polo' => 'polo',
             'status' => 'situação',
+            'access' => 'acesso ao painel',
+            'role_id' => 'papel',
             'registered_from' => 'cadastro a partir de',
             'registered_to' => 'cadastro até',
             'sort' => 'ordenação',

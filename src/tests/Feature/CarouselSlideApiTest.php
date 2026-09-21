@@ -16,7 +16,7 @@ class CarouselSlideApiTest extends TestCase
 
     private function logar(): void
     {
-        Passport::actingAs(User::factory()->create());
+        Passport::actingAs(User::factory()->master()->create());
     }
 
     public function test_site_shows_only_active_slides_with_image_in_order(): void
@@ -48,7 +48,7 @@ class CarouselSlideApiTest extends TestCase
         $resposta = $this->getJson('/api/site/rotas')->assertOk();
 
         $grupos = array_column($resposta->json('data'), 'group');
-        $this->assertSame(['Principais', 'Institucional', 'Pesquisa', 'Transparência'], $grupos);
+        $this->assertSame(['Principais', 'Cursos', 'Institucional', 'Pesquisa', 'Transparência'], $grupos);
 
         // As páginas internas das seções entram sozinhas, a partir de SectionPages.
         $caminhos = collect($resposta->json('data'))->pluck('routes')->flatten(1)->pluck('path');

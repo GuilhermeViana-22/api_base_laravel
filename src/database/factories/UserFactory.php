@@ -3,6 +3,7 @@
 namespace Database\Factories;
 
 use App\Enums\UserStatus;
+use App\Models\Role;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Facades\Hash;
@@ -40,6 +41,36 @@ class UserFactory extends Factory
     public function status(UserStatus $status): static
     {
         return $this->state(fn (array $attributes) => ['status' => $status]);
+    }
+
+    /** Quem administra o painel inteiro: papel Master, acesso a tudo. */
+    public function master(): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::firstOrCreate(
+                ['slug' => Role::MASTER],
+                ['name' => 'Master', 'abilities' => [], 'is_master' => true, 'locked' => true],
+            )->id,
+        ]);
+    }
+
+    /**
+     * Papel com permissão só nos módulos (e ações) informados.
+     *
+     * @param  array<int, string>  $modulos
+     * @param  array<int, string>  $acoes
+     */
+    public function podendo(array $modulos, array $acoes = ['access', 'view']): static
+    {
+        return $this->state(fn () => [
+            'role_id' => Role::factory()->podendo($modulos, $acoes)->create()->id,
+        ]);
+    }
+
+    /** Conta só do site público: sem papel, sem painel. */
+    public function semPainel(): static
+    {
+        return $this->state(fn () => ['role_id' => null]);
     }
 
     /** Pessoa ligada a um polo. */

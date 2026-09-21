@@ -16,7 +16,7 @@ class PostApiTest extends TestCase
 
     private function actingAsAdmin(): User
     {
-        $user = User::factory()->create();
+        $user = User::factory()->master()->create();
         Passport::actingAs($user);
 
         return $user;

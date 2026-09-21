@@ -26,6 +26,13 @@ class AdminUserResource extends JsonResource
             'status' => $this->status,
             'email_verified' => $this->isEmailVerified(),
             'created_at' => $this->created_at,
+            // Papel no painel; nulo em quem só tem cadastro no site.
+            'role' => $this->role ? [
+                'id' => $this->role->id,
+                'name' => $this->role->name,
+                'slug' => $this->role->slug,
+                'is_master' => $this->role->is_master,
+            ] : null,
             // Quem está logado não pode mudar a própria situação: a tabela usa
             // isto para desabilitar a ação em vez de deixar tentar e falhar.
             'is_me' => $request->user()?->is($this->resource) ?? false,

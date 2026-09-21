@@ -16,6 +16,29 @@ docker compose up -d --build
 
 API em **http://localhost:8019/api**. Testes: `docker compose exec php php artisan test`.
 
+## Documentação (Swagger)
+
+Todas as rotas estão descritas em OpenAPI 3.1:
+
+- **http://localhost:8019/api/documentation** — Swagger UI. Faça login em `POST /auth/login`,
+  clique em *Authorize* e cole o `access_token` para testar as rotas do painel.
+- **http://localhost:8019/api/docs.json** — a especificação crua (para Postman, Insomnia, geradores de client).
+
+A especificação sai dos atributos `#[OA\...]` do próprio código:
+
+| Onde | O quê |
+|---|---|
+| `app/OpenApi/ApiDoc.php` | título, servidor, autenticação Bearer e tags |
+| `app/OpenApi/Schemas/` | formato de cada resposta (um arquivo por recurso) |
+| `app/OpenApi/Responses.php`, `Parameters.php`, `RequestBodies.php` | 401/404/422/429, chaves fixas e upload de imagem, reaproveitados pelas rotas |
+| cada método de controller | a rota: parâmetros, corpo e respostas |
+
+Rota nova ou alterada → atualize o atributo do método. Em desenvolvimento a especificação é
+remontada a cada acesso; para gerar na mão: `docker compose run --rm artisan l5-swagger:generate`.
+
+Em produção as duas URLs respondem **404**. Para abrir (uma homologação, por exemplo), use
+`SWAGGER_ENABLED=true`; o `start.sh` gera a especificação no boot.
+
 ## Produção (Dokploy + Traefik)
 
 Mesmo formato do Arquiteto Online: `Dockerfile` na raiz gera uma imagem autocontida
@@ -47,8 +70,11 @@ Variáveis importantes (em `src/.env` ou no painel do Dokploy):
 | `MAIL_FROM_ADDRESS`, `MAIL_FROM_NAME` | remetente (domínio verificado no Resend: `guilhermeviana.com`) |
 | `RESEND_TIMEOUT`, `RESEND_CONNECT_TIMEOUT` | limite da chamada ao Resend (padrão 10 s / 5 s) |
 | `AUTH_VERIFICATION_*` | validade do código (15 min), tentativas (5) e intervalo de reenvio (60 s) |
+| `SWAGGER_ENABLED` | `true` abre `/api/documentation` em produção (fechado por padrão) |
 
 ## Rotas principais
+
+Lista completa, com corpo e respostas, no [Swagger](#documentação-swagger).
 
 | Método | Rota | Acesso |
 |---|---|---|

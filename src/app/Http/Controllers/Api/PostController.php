@@ -7,6 +7,7 @@ use App\Http\Resources\PublicPostResource;
 use App\Models\Post;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\AnonymousResourceCollection;
+use OpenApi\Attributes as OA;
 
 /**
  * Leitura pública das notícias (sem login).
@@ -33,6 +34,43 @@ class PostController extends Controller
      *
      * Sempre da mais recente para a mais antiga pela data de publicação.
      */
+    #[OA\Get(
+        path: '/posts',
+        summary: 'Notícias publicadas, paginadas',
+        description: 'Só o que está publicado e com a data já alcançada — rascunho e agendada não aparecem. '
+            .'Sempre da mais recente para a mais antiga. A paginação é do backend: o site pede `?page=N` '
+            .'e usa `meta.current_page` e `meta.last_page` no "Carregar mais". Nas listagens vem `excerpt`, não `content`.',
+        tags: ['Site · Notícias'],
+        parameters: [
+            new OA\Parameter(ref: '#/components/parameters/page'),
+            new OA\Parameter(
+                name: 'per_page',
+                description: 'Itens por página. Padrão 9 (a grade de /noticias, 3 × 3).',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'integer', maximum: 50, minimum: 1, example: 9),
+            ),
+            new OA\Parameter(
+                name: 'featured',
+                description: 'Só destaques (`1`) ou só não destaques (`0`). Sem o filtro, vêm os dois.',
+                in: 'query',
+                required: false,
+                schema: new OA\Schema(type: 'boolean', example: true),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'A página pedida.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', type: 'array', items: new OA\Items(ref: '#/components/schemas/PublicPost')),
+                    new OA\Property(property: 'links', ref: '#/components/schemas/PaginationLinks'),
+                    new OA\Property(property: 'meta', ref: '#/components/schemas/PaginationMeta'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ],
+    )]
     public function index(Request $request): AnonymousResourceCollection
     {
         $filters = $request->validate([
@@ -57,6 +95,31 @@ class PostController extends Controller
      * Rascunho, agendada ou inexistente respondem 404 do mesmo jeito, para
      * não revelar o que ainda não foi ao ar.
      */
+    #[OA\Get(
+        path: '/posts/{id}',
+        summary: 'Uma notícia publicada, com o texto completo',
+        description: 'Rascunho, agendada ou inexistente respondem 404 do mesmo jeito, '
+            .'para não revelar o que ainda não foi ao ar.',
+        tags: ['Site · Notícias'],
+        parameters: [
+            new OA\Parameter(
+                name: 'id',
+                in: 'path',
+                required: true,
+                schema: new OA\Schema(type: 'integer', example: 42),
+            ),
+        ],
+        responses: [
+            new OA\Response(
+                response: 200,
+                description: 'A notícia, com `content`.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'data', ref: '#/components/schemas/PublicPost'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 404, ref: '#/components/responses/NotFound'),
+        ],
+    )]
     public function show(int $id): PublicPostResource
     {
         return new PublicPostResource(Post::published()->findOrFail($id));

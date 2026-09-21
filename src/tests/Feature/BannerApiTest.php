@@ -39,7 +39,7 @@ class BannerApiTest extends TestCase
 
     public function test_admin_updates_texts_with_validation(): void
     {
-        Passport::actingAs(User::factory()->create());
+        Passport::actingAs(User::factory()->master()->create());
 
         $this->putJson('/api/admin/banners/noticias', ['label' => '', 'title' => str_repeat('a', 151)])
             ->assertUnprocessable()
@@ -54,7 +54,7 @@ class BannerApiTest extends TestCase
 
     public function test_banners_with_optional_label_accept_an_empty_label(): void
     {
-        Passport::actingAs(User::factory()->create());
+        Passport::actingAs(User::factory()->master()->create());
 
         foreach (Banner::OPTIONAL_LABEL as $key) {
             $this->getJson("/api/banners/{$key}")->assertOk()->assertJsonPath('data.key', $key);
@@ -79,7 +79,7 @@ class BannerApiTest extends TestCase
     public function test_admin_replaces_and_removes_image(): void
     {
         Storage::fake('public');
-        Passport::actingAs(User::factory()->create());
+        Passport::actingAs(User::factory()->master()->create());
 
         $this->postJson('/api/admin/banners/noticias/image', ['file' => UploadedFile::fake()->image('a.jpg', 1920, 600)])->assertOk();
         $primeira = Banner::forKey('noticias')->image_path;

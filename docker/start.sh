@@ -81,6 +81,18 @@ php artisan config:cache
 php artisan route:cache
 
 # ---------------------------------------------------------------------------
+# Documentação da API (só quando SWAGGER_ENABLED=true)
+#
+# Fora de desenvolvimento a especificação não é remontada a cada acesso
+# (config/l5-swagger.php), e storage/api-docs/ não vem na imagem: se as telas
+# estão abertas, o arquivo precisa ser gerado uma vez aqui.
+# ---------------------------------------------------------------------------
+if [ "${SWAGGER_ENABLED}" = "true" ]; then
+    echo "[start] Gerando a documentação da API (/api/documentation)..."
+    php artisan l5-swagger:generate || true
+fi
+
+# ---------------------------------------------------------------------------
 # Fila (e-mails de verificação) — reiniciada caso morra
 # ---------------------------------------------------------------------------
 (

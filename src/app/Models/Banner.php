@@ -31,14 +31,17 @@ class Banner extends Model
     /** Banner do topo de /institucional. */
     public const INSTITUTIONAL = 'institucional';
 
+    /** Banner do topo de /cursos e das páginas de cada curso. */
+    public const COURSES = 'cursos';
+
     /** Chaves aceitas nas rotas `/banners/{key}`. */
-    public const KEYS = [self::NEWS, self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL];
+    public const KEYS = [self::NEWS, self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL, self::COURSES];
 
     /**
      * Banners em que o rótulo pode ficar vazio. Em notícias ele é obrigatório
      * porque também identifica a seção no topo de cada notícia.
      */
-    public const OPTIONAL_LABEL = [self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL];
+    public const OPTIONAL_LABEL = [self::VESTIBULAR, self::PROVAO, self::INSTITUTIONAL, self::COURSES];
 
     /** Textos com que cada banner nasce, iguais aos do site original. */
     public const DEFAULTS = [
@@ -57,6 +60,10 @@ class Banner extends Model
         self::INSTITUTIONAL => [
             'label' => 'Institucional',
             'title' => 'Conheça a UNIVESP',
+        ],
+        self::COURSES => [
+            'label' => 'Cursos UNIVESP',
+            'title' => 'Graduação e pós-graduação gratuitas, a distância',
         ],
     ];
 
