@@ -63,8 +63,8 @@ final class SiteRoutes
 
         foreach (self::SECTION_GROUPS as $secao => $nome) {
             $paginas = [];
-            foreach (SectionPages::PAGES[$secao] ?? [] as $slug => $titulo) {
-                $paginas["/{$secao}/{$slug}"] = $titulo;
+            foreach (SectionPages::for($secao) as $pagina) {
+                $paginas["/{$secao}/{$pagina['slug']}"] = $pagina['name'];
             }
 
             $grupos[] = ['group' => $nome, 'routes' => self::format($paginas)];

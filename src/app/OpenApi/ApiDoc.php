@@ -64,6 +64,7 @@ use OpenApi\Attributes as OA;
 #[OA\Tag(name: 'Painel · Carrossel', description: 'Slides do topo da página inicial: conteúdo, imagem e ordem.')]
 #[OA\Tag(name: 'Painel · Página inicial', description: 'Blocos de chave fixa, contadores e depoimentos.')]
 #[OA\Tag(name: 'Painel · Cursos', description: 'CRUD dos cursos: página, textos e ordem no menu do site.')]
+#[OA\Tag(name: 'Painel · Páginas das seções', description: 'Páginas de Institucional, Pesquisa e Transparência: rótulo, título, conteúdo e ordem.')]
 #[OA\Tag(name: 'Painel · Usuários', description: 'Listagem das contas e troca de situação.')]
 #[OA\Tag(name: 'Painel · Equipe', description: 'Quem entra no painel, papéis e a matriz de permissões.')]
 #[OA\Tag(name: 'Painel · Configurações', description: 'Ajustes do CMS, a começar pelas páginas que aparecem no site.')]

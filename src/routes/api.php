@@ -7,6 +7,7 @@ use App\Http\Controllers\Api\Admin\PostController as AdminPostController;
 use App\Http\Controllers\Api\Admin\CarouselSlideController as AdminCarouselSlideController;
 use App\Http\Controllers\Api\Admin\CarouselSlideImageController;
 use App\Http\Controllers\Api\Admin\CourseController as AdminCourseController;
+use App\Http\Controllers\Api\Admin\SectionPageController as AdminSectionPageController;
 use App\Http\Controllers\Api\Admin\CourseCoverController;
 use App\Http\Controllers\Api\Admin\CourseLandingController;
 use App\Http\Controllers\Api\Admin\HomeCounterController;
@@ -74,6 +75,8 @@ Route::get('site/paginas-ocultas', [SiteRouteController::class, 'hidden']);
 // Páginas internas de uma seção: só a relação de rotas (slug + nome)
 Route::get('secoes/{secao}/paginas', [SectionPageController::class, 'index'])
     ->whereIn('secao', SectionPages::sections());
+Route::get('secoes/{secao}/paginas/{slug}', [SectionPageController::class, 'show'])
+    ->whereIn('secao', SectionPages::sections());
 
 // Painel (área restrita): exige token Bearer e, em cada rota, a permissão do
 // papel de quem está logado ('pode:<modulo>,<acao>' — App\Support\PanelModules).
@@ -134,6 +137,19 @@ Route::prefix('admin')->middleware('auth:api')->group(function () {
         ->middlewareFor('store', 'pode:courses,create')
         ->middlewareFor('update', 'pode:courses,update')
         ->middlewareFor('destroy', 'pode:courses,delete');
+
+    // Páginas das seções (Institucional, Pesquisa, Transparência). A seção vem
+    // da URL, e a permissão também: `pages.{secao}` para a lista e
+    // `pages.{secao}.{pagina}` para uma página (ver EnsurePermission).
+    Route::prefix('secoes/{secao}/paginas')->whereIn('secao', SectionPages::sections())->group(function () {
+        Route::get('/', [AdminSectionPageController::class, 'index'])->middleware('pode:pages.{secao},view');
+        Route::post('/', [AdminSectionPageController::class, 'store'])->middleware('pode:pages.{secao},create');
+        Route::post('reorder', [AdminSectionPageController::class, 'reorder'])->middleware('pode:pages.{secao},update');
+        Route::post('imagens', [ImageUploadController::class, 'store'])->middleware('pode:pages.{secao},update');
+        Route::get('{pagina}', [AdminSectionPageController::class, 'show'])->middleware('pode:pages.{secao}.{pagina},view');
+        Route::patch('{pagina}', [AdminSectionPageController::class, 'update'])->middleware('pode:pages.{secao}.{pagina},update');
+        Route::delete('{pagina}', [AdminSectionPageController::class, 'destroy'])->middleware('pode:pages.{secao},delete');
+    });
 
     // Usuários do painel: listagem com filtros e troca de situação
     Route::get('users', [AdminUserController::class, 'index'])->middleware('pode:users,view');

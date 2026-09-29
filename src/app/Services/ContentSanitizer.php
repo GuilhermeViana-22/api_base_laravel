@@ -12,9 +12,13 @@ use Symfony\Component\HtmlSanitizer\HtmlSanitizerConfig;
  * editor sabe produzir (a mesma lista do `valid_elements` do front):
  * nada de script, style, iframe ou atributos de evento.
  *
- * Alinhamento e cor do texto viajam como classe (`texto-centro`,
- * `texto-vermelho`), e não como `style`: assim o site controla a aparência e
- * nenhum CSS arbitrário entra pelo editor.
+ * Alinhamento viaja como classe (`texto-centro`), e não como `style`: assim
+ * o site controla a aparência e nenhum CSS arbitrário entra pelo editor.
+ *
+ * A única exceção é a cor do texto, que o seletor de cor do editor grava como
+ * `<span style="color: #hex">`: o `style` do `span` passa pelo
+ * TextColorStyleSanitizer, que deixa só a cor. As classes antigas
+ * (`texto-vermelho`...) continuam aceitas para o conteúdo já gravado.
  */
 class ContentSanitizer
 {
@@ -33,9 +37,10 @@ class ContentSanitizer
             ->allowElement('i')
             ->allowElement('u')
             ->allowElement('s')
-            ->allowElement('span', $alinhamento)
+            ->allowElement('span', ['class', 'style'])
             ->allowElement('h2', $alinhamento)
             ->allowElement('h3', $alinhamento)
+            ->allowElement('h4', $alinhamento)
             ->allowElement('blockquote', $alinhamento)
             ->allowElement('ul')
             ->allowElement('ol')
@@ -56,6 +61,7 @@ class ContentSanitizer
             ->allowRelativeLinks()
             ->allowRelativeMedias()
             ->forceAttribute('a', 'rel', 'noopener noreferrer')
+            ->withAttributeSanitizer(new TextColorStyleSanitizer())
             ->withMaxInputLength(1_000_000);
 
         $this->sanitizer = new HtmlSanitizer($config);

@@ -9,7 +9,8 @@ use Illuminate\Http\JsonResponse;
 use OpenApi\Attributes as OA;
 
 /**
- * Upload das imagens inseridas no corpo do texto (TinyMCE).
+ * Upload das imagens inseridas no corpo do texto (TinyMCE): das notícias e
+ * das páginas de seção (rotas diferentes só pela permissão exigida).
  * Responde `{ "location": url }`, o formato que o editor espera.
  */
 class ImageUploadController extends Controller
@@ -36,6 +37,30 @@ class ImageUploadController extends Controller
                 ], type: 'object'),
             ),
             new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ],
+    )]
+    #[OA\Post(
+        path: '/admin/secoes/{secao}/paginas/imagens',
+        summary: 'Envia uma imagem do conteúdo de uma página de seção',
+        description: 'Mesma coisa que `/admin/uploads/images`, com a permissão da seção (`pages.<secao>`) '
+            .'no lugar da de Notícias: quem cuida só do Institucional também insere imagens.',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(ref: '#/components/requestBodies/ImageUpload'),
+        tags: ['Painel · Uploads'],
+        parameters: [
+            new OA\Parameter(name: 'secao', in: 'path', required: true, schema: new OA\Schema(type: 'string', enum: ['institucional', 'pesquisa', 'transparencia'], example: 'institucional')),
+        ],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Imagem guardada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'location', type: 'string', example: 'http://localhost:8019/storage/posts/conteudo/foto.webp'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
             new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
         ],
     )]

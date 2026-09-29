@@ -34,7 +34,9 @@ final class SiteMenu
      * Itens do menu, na ordem em que aparecem.
      *
      * - `children`: submenu fixo (caminho => nome).
-     * - `section`: submenu montado com as páginas daquela seção (SectionPages).
+     * - `section`: submenu montado com as páginas daquela seção (SectionPages),
+     *   aberto por "Visão geral" (a página da seção), a não ser que `overview`
+     *   seja false.
      * - `courses`: submenu montado com os cursos ligados no painel.
      */
     private const ITEMS = [
@@ -43,7 +45,9 @@ final class SiteMenu
         ['label' => 'Cursos', 'path' => '/cursos', 'courses' => true],
         ['label' => 'Notícias', 'path' => '/noticias'],
         ['label' => 'Polos', 'path' => '/polo'],
-        ['label' => 'Institucional', 'path' => '/institucional', 'section' => 'institucional'],
+        // Sem "Visão geral": /institucional abre a primeira página da seção,
+        // com o menu lateral de todas elas, como no site da Univesp.
+        ['label' => 'Institucional', 'path' => '/institucional', 'section' => 'institucional', 'overview' => false],
         ['label' => 'Pesquisa', 'path' => '/pesquisa', 'section' => 'pesquisa'],
         ['label' => 'Transparência', 'path' => '/transparencia', 'section' => 'transparencia'],
         ['label' => 'Carreira Univesp', 'path' => '/carreira-univesp'],
@@ -135,9 +139,11 @@ final class SiteMenu
             return [];
         }
 
-        // Seção: a página de abertura e, depois, as páginas internas dela.
+        // Seção: a página de abertura (quando tem) e, depois, as páginas internas dela.
         $secao = $item['section'];
-        $filhos = [['path' => $item['path'], 'label' => self::OVERVIEW_LABEL]];
+        $filhos = ($item['overview'] ?? true)
+            ? [['path' => $item['path'], 'label' => self::OVERVIEW_LABEL]]
+            : [];
 
         foreach (SectionPages::for($secao) as $pagina) {
             $filhos[] = ['path' => "/{$secao}/{$pagina['slug']}", 'label' => $pagina['name']];
