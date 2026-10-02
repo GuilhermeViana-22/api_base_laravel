@@ -15,7 +15,7 @@ use Illuminate\Support\Facades\Storage;
  * @property string $title
  * @property string|null $image_path caminho no disco `public`
  * @property string|null $button_label sem rótulo não há botão
- * @property string|null $button_route rota do site (App\Support\SiteRoutes)
+ * @property string|null $button_route rota do site (App\Support\SiteRoutes) ou link externo http/https
  * @property string|null $button_color fundo do botão, em hexadecimal
  * @property string|null $button_text_color texto do botão, em hexadecimal
  */

@@ -15,7 +15,7 @@ use OpenApi\Attributes as OA;
         new OA\Property(property: 'title', type: 'string', example: 'Inscrições abertas para o vestibular'),
         new OA\Property(property: 'image_url', description: 'Slide sem imagem não aparece no site.', type: 'string', nullable: true, example: 'http://localhost:8019/storage/carrossel/slide-3.webp'),
         new OA\Property(property: 'button_label', type: 'string', nullable: true, example: 'Inscreva-se'),
-        new OA\Property(property: 'button_route', description: 'Caminho de uma página do site (ver `GET /site/rotas`).', type: 'string', nullable: true, example: '/vestibular'),
+        new OA\Property(property: 'button_route', description: 'Caminho de uma página do site (ver `GET /site/rotas`) ou link externo http/https.', type: 'string', nullable: true, example: '/vestibular'),
         new OA\Property(property: 'button_color', type: 'string', nullable: true, example: '#172833'),
         new OA\Property(property: 'button_text_color', type: 'string', nullable: true, example: '#FFFFFF'),
         new OA\Property(property: 'created_at', type: 'string', format: 'date-time'),

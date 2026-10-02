@@ -21,6 +21,8 @@ class DatabaseSeeder extends Seeder
     {
         // Conteúdo das páginas do site, com os arquivos de database/seeders/arquivos/.
         $this->call([
+            CarrosselSeeder::class,
+            DepoimentosSeeder::class,
             ProvaoPaulistaSeeder::class,
             VestibularSeeder::class,
         ]);

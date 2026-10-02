@@ -16,7 +16,7 @@ use Illuminate\Support\Facades\Storage;
 class CarouselSlideService
 {
     /** Pasta (disco `public`) das imagens dos slides. */
-    private const IMAGE_DIR = 'carrossel';
+    public const IMAGE_DIR = 'carrossel';
 
     /** Cria o slide no fim da fila, para não empurrar os que já estão no ar. */
     public function create(array $data): CarouselSlide

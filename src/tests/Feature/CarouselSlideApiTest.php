@@ -92,16 +92,36 @@ class CarouselSlideApiTest extends TestCase
         $this->postJson('/api/admin/carousel-slides', [
             'title' => 'ab',
             'button_label' => 'Acesse',
-            'button_route' => 'https://outro-site.com',
+            'button_route' => '/pagina-que-nao-existe',
             'button_color' => 'azul',
         ])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['title', 'button_route', 'button_color']);
 
+        // Endereço externo só com http/https: nada de javascript: ou caminho solto.
+        foreach (['javascript:alert(1)', 'ftp://arquivos.univesp.br', 'outro-site.com'] as $destino) {
+            $this->postJson('/api/admin/carousel-slides', ['title' => 'Slide', 'button_label' => 'Acesse', 'button_route' => $destino])
+                ->assertUnprocessable()
+                ->assertJsonValidationErrors(['button_route']);
+        }
+
         // Destino sem rótulo (e vice-versa) não forma um botão.
         $this->postJson('/api/admin/carousel-slides', ['title' => 'Slide sem rótulo', 'button_route' => '/cursos'])
             ->assertUnprocessable()
             ->assertJsonValidationErrors(['button_label']);
+    }
+
+    public function test_the_button_can_point_to_an_external_link(): void
+    {
+        $this->logar();
+
+        $this->postJson('/api/admin/carousel-slides', [
+            'title' => 'Inscrições abertas no portal da Vunesp',
+            'button_label' => 'Inscreva-se',
+            'button_route' => 'https://vestibular.univesp.br',
+        ])
+            ->assertCreated()
+            ->assertJsonPath('data.button_route', 'https://vestibular.univesp.br');
     }
 
     public function test_it_updates_and_deletes_a_slide_with_its_image(): void

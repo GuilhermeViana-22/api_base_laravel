@@ -18,8 +18,8 @@ use Illuminate\Support\Facades\Storage;
 class HomeContentService
 {
     /** Pastas (disco `public`) das imagens da página inicial. */
-    private const SECTION_IMAGE_DIR = 'home/secoes';
-    private const TESTIMONIAL_PHOTO_DIR = 'home/depoimentos';
+    public const SECTION_IMAGE_DIR = 'home/secoes';
+    public const TESTIMONIAL_PHOTO_DIR = 'home/depoimentos';
 
     public function __construct(private readonly ContentSanitizer $sanitizer)
     {

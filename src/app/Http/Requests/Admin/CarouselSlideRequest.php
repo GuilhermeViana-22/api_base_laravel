@@ -3,16 +3,17 @@
 namespace App\Http\Requests\Admin;
 
 use App\Support\SiteRoutes;
+use Closure;
 use Illuminate\Foundation\Http\FormRequest;
-use Illuminate\Validation\Rule;
 
 /**
  * Base dos formulários do carrossel: as mesmas regras valem para criar e
  * editar, mudando só o que é obrigatório (ver as subclasses).
  *
  * Duas regras importantes moram aqui:
- * - o destino do botão precisa ser uma rota do próprio site (SiteRoutes), o
- *   que impede link quebrado e redirecionamento para fora;
+ * - o destino do botão é uma rota do próprio site (SiteRoutes) ou um
+ *   endereço externo completo (http/https), que o site abre em nova aba.
+ *   Qualquer outra coisa (caminho que não existe, javascript:...) é recusada;
  * - as cores são hexadecimais de 6 dígitos, porque vão direto para o `style`
  *   do botão no site.
  */
@@ -36,10 +37,29 @@ abstract class CarouselSlideRequest extends FormRequest
 
             // Botão opcional: ou vem o par rótulo + destino, ou não vem botão.
             'button_label' => ['nullable', 'string', 'max:60', 'required_with:button_route'],
-            'button_route' => ['nullable', 'string', Rule::in(SiteRoutes::paths()), 'required_with:button_label'],
+            'button_route' => ['nullable', 'string', 'max:2048', 'required_with:button_label', $this->destinoValido()],
             'button_color' => ['nullable', 'string', 'regex:'.self::HEX_COLOR],
             'button_text_color' => ['nullable', 'string', 'regex:'.self::HEX_COLOR],
         ];
+    }
+
+    /** Uma página do site ou um endereço externo http/https. */
+    private function destinoValido(): Closure
+    {
+        return function (string $atributo, mixed $valor, Closure $falha) {
+            $valor = (string) $valor;
+
+            if (in_array($valor, SiteRoutes::paths(), true)) {
+                return;
+            }
+
+            $externo = filter_var($valor, FILTER_VALIDATE_URL)
+                && in_array(strtolower((string) parse_url($valor, PHP_URL_SCHEME)), ['http', 'https'], true);
+
+            if (!$externo) {
+                $falha('O destino do botão precisa ser uma página do site ou um link completo (https://...).');
+            }
+        };
     }
 
     /** Nomes dos campos nas mensagens de erro. */
@@ -58,7 +78,6 @@ abstract class CarouselSlideRequest extends FormRequest
     public function messages(): array
     {
         return [
-            'button_route.in' => 'O destino do botão precisa ser uma página do site.',
             'button_label.required_with' => 'Escreva o texto do botão ou deixe o destino em branco.',
             'button_route.required_with' => 'Escolha para onde o botão leva.',
         ];
