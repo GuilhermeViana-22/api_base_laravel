@@ -21,5 +21,11 @@ class DatabaseSeeder extends Seeder
             'name' => 'Test User',
             'email' => 'test@example.com',
         ]);
+
+        // Conteúdo das páginas do site, com os arquivos de database/seeders/arquivos/.
+        $this->call([
+            ProvaoPaulistaSeeder::class,
+            VestibularSeeder::class,
+        ]);
     }
 }

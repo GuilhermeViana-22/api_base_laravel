@@ -35,6 +35,22 @@ use OpenApi\Attributes as OA;
     ),
 )]
 #[OA\RequestBody(
+    request: 'LinkFile',
+    required: true,
+    description: 'Envio do arquivo de um link (Provão, Vestibular) em `multipart/form-data`.',
+    content: new OA\MediaType(
+        mediaType: 'multipart/form-data',
+        schema: new OA\Schema(
+            required: ['file'],
+            properties: [
+                new OA\Property(property: 'file', description: 'PDF, DOC, DOCX, ODT ou RTF, até 20 MB.', type: 'string', format: 'binary'),
+                new OA\Property(property: 'kind', description: 'Ícone no site. Sem ele, sai da extensão do arquivo.', type: 'string', enum: ['link', 'video', 'pdf', 'document'], nullable: true),
+            ],
+            type: 'object',
+        ),
+    ),
+)]
+#[OA\RequestBody(
     request: 'CourseUpdate',
     required: true,
     description: 'Só os campos presentes no corpo são alterados.',

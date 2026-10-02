@@ -64,6 +64,46 @@ class ImageUploadController extends Controller
             new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
         ],
     )]
+    #[OA\Post(
+        path: '/admin/provao-paulista/imagens',
+        summary: 'Envia uma imagem do conteúdo da página do Provão Paulista',
+        description: 'Mesma coisa que `/admin/uploads/images`, com a permissão de Páginas (`pages`).',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(ref: '#/components/requestBodies/ImageUpload'),
+        tags: ['Painel · Uploads'],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Imagem guardada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'location', type: 'string', example: 'http://localhost:8019/storage/posts/conteudo/foto.webp'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ],
+    )]
+    #[OA\Post(
+        path: '/admin/vestibular/imagens',
+        summary: 'Envia uma imagem do conteúdo da página do vestibular',
+        description: 'Mesma coisa que `/admin/uploads/images`, com a permissão de Páginas (`pages`).',
+        security: [['bearerAuth' => []]],
+        requestBody: new OA\RequestBody(ref: '#/components/requestBodies/ImageUpload'),
+        tags: ['Painel · Uploads'],
+        responses: [
+            new OA\Response(
+                response: 201,
+                description: 'Imagem guardada.',
+                content: new OA\JsonContent(properties: [
+                    new OA\Property(property: 'location', type: 'string', example: 'http://localhost:8019/storage/posts/conteudo/foto.webp'),
+                ], type: 'object'),
+            ),
+            new OA\Response(response: 401, ref: '#/components/responses/Unauthorized'),
+            new OA\Response(response: 403, ref: '#/components/responses/Forbidden'),
+            new OA\Response(response: 422, ref: '#/components/responses/ValidationError'),
+        ],
+    )]
     public function store(ImageUploadRequest $request): JsonResponse
     {
         $url = $this->posts->storeContentImage($request->file('file'));

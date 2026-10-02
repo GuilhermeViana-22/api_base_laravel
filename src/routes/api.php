@@ -13,12 +13,18 @@ use App\Http\Controllers\Api\Admin\CourseLandingController;
 use App\Http\Controllers\Api\Admin\HomeCounterController;
 use App\Http\Controllers\Api\Admin\HomeSectionController;
 use App\Http\Controllers\Api\Admin\PostCoverController;
+use App\Http\Controllers\Api\Admin\ProvaoController as AdminProvaoController;
+use App\Http\Controllers\Api\Admin\ProvaoLinkController;
+use App\Http\Controllers\Api\Admin\ProvaoLinkFileController;
 use App\Http\Controllers\Api\Admin\RoleController;
 use App\Http\Controllers\Api\Admin\SecuritySettingController;
 use App\Http\Controllers\Api\Admin\SitePageController;
 use App\Http\Controllers\Api\Admin\UserPermissionController;
 use App\Http\Controllers\Api\Admin\TestimonialController;
 use App\Http\Controllers\Api\Admin\UserController as AdminUserController;
+use App\Http\Controllers\Api\Admin\VestibularBlockController;
+use App\Http\Controllers\Api\Admin\VestibularBlockFileController;
+use App\Http\Controllers\Api\Admin\VestibularSectionController;
 use App\Http\Controllers\Api\AuthController;
 use App\Http\Controllers\Api\BannerController;
 use App\Http\Controllers\Api\CarouselSlideController;
@@ -26,7 +32,9 @@ use App\Http\Controllers\Api\CourseController;
 use App\Http\Controllers\Api\HomeContentController;
 use App\Http\Controllers\Api\SiteRouteController;
 use App\Http\Controllers\Api\SectionPageController;
+use App\Http\Controllers\Api\VestibularController;
 use App\Http\Controllers\Api\PostController;
+use App\Http\Controllers\Api\ProvaoController;
 use App\Models\Banner;
 use App\Models\HomeSection;
 use App\Support\SectionPages;
@@ -62,6 +70,12 @@ Route::get('home', [HomeContentController::class, 'index']);
 Route::get('courses/landing', [CourseController::class, 'landing']);
 Route::get('courses', [CourseController::class, 'index']);
 Route::get('courses/{slug}', [CourseController::class, 'show']);
+
+// Provão Paulista: texto da página e os links do card de matrícula
+Route::get('provao-paulista', [ProvaoController::class, 'show']);
+
+// Vestibular: seções (por ano) com blocos de título, texto, link/arquivo e vídeo
+Route::get('vestibular', [VestibularController::class, 'show']);
 
 // Rotas do site que um botão do painel pode apontar (select de destino)
 Route::get('site/rotas', [SiteRouteController::class, 'index']);
@@ -149,6 +163,35 @@ Route::prefix('admin')->middleware('auth:api')->group(function () {
         Route::get('{pagina}', [AdminSectionPageController::class, 'show'])->middleware('pode:pages.{secao}.{pagina},view');
         Route::patch('{pagina}', [AdminSectionPageController::class, 'update'])->middleware('pode:pages.{secao}.{pagina},update');
         Route::delete('{pagina}', [AdminSectionPageController::class, 'destroy'])->middleware('pode:pages.{secao},delete');
+    });
+
+    // Provão Paulista: textos da página e os links do card (URL ou arquivo)
+    Route::prefix('provao-paulista')->group(function () {
+        Route::get('/', [AdminProvaoController::class, 'show'])->middleware('pode:pages,view');
+        Route::patch('/', [AdminProvaoController::class, 'update'])->middleware('pode:pages,update');
+        Route::post('imagens', [ImageUploadController::class, 'store'])->middleware('pode:pages,update');
+        Route::post('links', [ProvaoLinkController::class, 'store'])->middleware('pode:pages,create');
+        Route::post('links/reorder', [ProvaoLinkController::class, 'reorder'])->middleware('pode:pages,update');
+        Route::patch('links/{link}', [ProvaoLinkController::class, 'update'])->middleware('pode:pages,update');
+        Route::delete('links/{link}', [ProvaoLinkController::class, 'destroy'])->middleware('pode:pages,delete');
+        Route::post('links/{link}/file', [ProvaoLinkFileController::class, 'store'])->middleware('pode:pages,update');
+        Route::delete('links/{link}/file', [ProvaoLinkFileController::class, 'destroy'])->middleware('pode:pages,update');
+    });
+
+    // Vestibular: seções e blocos (título, texto, link/arquivo, vídeo)
+    Route::prefix('vestibular')->group(function () {
+        Route::get('/', [VestibularSectionController::class, 'index'])->middleware('pode:pages,view');
+        Route::post('imagens', [ImageUploadController::class, 'store'])->middleware('pode:pages,update');
+        Route::post('sections', [VestibularSectionController::class, 'store'])->middleware('pode:pages,create');
+        Route::post('sections/reorder', [VestibularSectionController::class, 'reorder'])->middleware('pode:pages,update');
+        Route::patch('sections/{section}', [VestibularSectionController::class, 'update'])->middleware('pode:pages,update');
+        Route::delete('sections/{section}', [VestibularSectionController::class, 'destroy'])->middleware('pode:pages,delete');
+        Route::post('sections/{section}/blocks', [VestibularBlockController::class, 'store'])->middleware('pode:pages,create');
+        Route::post('sections/{section}/blocks/reorder', [VestibularBlockController::class, 'reorder'])->middleware('pode:pages,update');
+        Route::patch('blocks/{block}', [VestibularBlockController::class, 'update'])->middleware('pode:pages,update');
+        Route::delete('blocks/{block}', [VestibularBlockController::class, 'destroy'])->middleware('pode:pages,delete');
+        Route::post('blocks/{block}/file', [VestibularBlockFileController::class, 'store'])->middleware('pode:pages,update');
+        Route::delete('blocks/{block}/file', [VestibularBlockFileController::class, 'destroy'])->middleware('pode:pages,update');
     });
 
     // Usuários do painel: listagem com filtros e troca de situação
